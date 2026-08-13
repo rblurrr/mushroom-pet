@@ -278,6 +278,16 @@ def load_from_atlases(src_dir, src):
             bb = (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
             foot = foot_line(im, bb)
             frames.append((im, bb, foot, foot_centre(im, bb, foot)))
+        # A second pass over the assembled animation. The per-row filter only sees one
+        # atlas page, and a 16-frame animation is cut from two -- so a scrap that beat
+        # its own page's median can still be well under the median for the animation as
+        # a whole. This is what catches the last few severed frames.
+        if len(frames) >= 6:
+            areas = [int((np.array(im)[..., 3] > ALPHA_T).sum()) for im, _, _, _ in frames]
+            floor_area = float(np.median(areas)) * MIN_CELL_FRAC
+            kept = [f for f, ar in zip(frames, areas) if ar >= floor_area]
+            if len(kept) >= 6:
+                frames = kept
         if frames:
             out[anim] = frames
     return out

@@ -1,8 +1,8 @@
 {
   "canvas": {
-    "w": 242,
-    "h": 180,
-    "baseline": 159,
+    "w": 218,
+    "h": 174,
+    "baseline": 153,
     "standing": 108
   },
   "pixel_art": false,
@@ -35,7 +35,7 @@
       "category": "normal"
     },
     "run": {
-      "frames": 7,
+      "frames": 8,
       "fps": 14.0,
       "loop": true,
       "dir": "run",
@@ -211,7 +211,7 @@
       "category": "rage"
     },
     "feral_idle": {
-      "frames": 15,
+      "frames": 14,
       "fps": 7.0,
       "loop": true,
       "dir": "feral_idle",
@@ -222,7 +222,7 @@
       "category": "rage"
     },
     "feral_stalk": {
-      "frames": 13,
+      "frames": 11,
       "fps": 9.0,
       "loop": true,
       "dir": "feral_stalk",
@@ -255,7 +255,7 @@
       "category": "rage"
     },
     "feral_taunt": {
-      "frames": 15,
+      "frames": 14,
       "fps": 9.0,
       "loop": false,
       "dir": "feral_taunt",

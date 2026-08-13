@@ -73,6 +73,58 @@ def split(profile, want, search=None):
     return cuts
 
 
+def gap_cuts(profile, want, min_run=6):
+    """Cut down the middle of the empty gaps rather than on an even grid.
+
+    Always preferable where it applies: a cut placed in a genuine gutter cannot pass
+    through a sprite, whereas an even grid lands where it lands and will happily slice a
+    knight off at the knees -- which is exactly what was removing Pip's legs from his
+    climb. The count rarely comes out right first time, so:
+
+      too many runs  a sprite has an internal gap (a gap between rows of a pose, or a
+                     sprite that simply doesn't touch its neighbours) -- merge across
+                     the narrowest gaps until the count is right
+      too few runs   two rows are touching, and no gutter exists to cut -- split the
+                     tallest run, which is the one holding more than its share
+
+    Returns None only when there's nothing to work with.
+    """
+    runs, start = [], None
+    for i, v in enumerate(profile):
+        if v > 0 and start is None:
+            start = i
+        elif v <= 0 and start is not None:
+            if i - start >= min_run:
+                runs.append([start, i])
+            start = None
+    if start is not None and len(profile) - start >= min_run:
+        runs.append([start, len(profile)])
+    if not runs:
+        return None
+
+    while len(runs) > want:
+        i = min(range(len(runs) - 1), key=lambda k: runs[k + 1][0] - runs[k][1])
+        runs[i][1] = runs[i + 1][1]
+        del runs[i + 1]
+
+    while len(runs) < want:
+        i = max(range(len(runs)), key=lambda k: runs[k][1] - runs[k][0])
+        lo, hi = runs[i]
+        inner = split(profile[lo:hi], 2)
+        if inner is None or inner[1] <= 0 or lo + inner[1] >= hi:
+            break
+        mid = lo + inner[1]
+        runs[i:i + 1] = [[lo, mid], [mid, hi]]
+
+    if len(runs) != want:
+        return None
+    cuts = [runs[0][0]]
+    for a, b in zip(runs, runs[1:]):
+        cuts.append((a[1] + b[0]) // 2)
+    cuts.append(runs[-1][1])
+    return cuts
+
+
 def _row_cells(im, band, y0, ccuts, cols):
     """Build the cell images for one row given a set of cut positions."""
     lbl, owner = _assign(band, ccuts, cols)
@@ -153,7 +205,8 @@ def cells(path, rows, cols):
     mask = np.array(im)[..., 3] > ALPHA_T
     if not mask.any():
         return []
-    rcuts = split(ink(mask, 1), rows)
+    rprofile = ink(mask, 1)
+    rcuts = gap_cuts(rprofile, rows) or split(rprofile, rows)
     if rcuts is None:
         return []
     out = []
@@ -165,8 +218,10 @@ def cells(path, rows, cols):
             continue
         profile = ink(band, 0)
         best_row, best_score = None, -1
-        for s in SEARCHES:
-            ccuts = split(profile, cols, s)
+        # A cut down a real gutter can't sever anything, so try that first and take it
+        # outright if it works. Only fall back to snapping when the sprites touch.
+        candidates = [gap_cuts(profile, cols)] + [split(profile, cols, s) for s in SEARCHES]
+        for ccuts in candidates:
             if ccuts is None:
                 continue
             row = _row_cells(im, band, y0, ccuts, cols)

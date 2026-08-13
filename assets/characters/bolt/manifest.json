@@ -1,6 +1,6 @@
 {
   "canvas": {
-    "w": 172,
+    "w": 174,
     "h": 134,
     "baseline": 120,
     "standing": 108
@@ -68,7 +68,7 @@
       "category": "normal"
     },
     "sleep": {
-      "frames": 15,
+      "frames": 16,
       "fps": 6.0,
       "loop": true,
       "dir": "sleep",
