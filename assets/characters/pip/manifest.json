@@ -5,7 +5,7 @@
     "baseline": 140,
     "standing": 108
   },
-  "pixel_art": true,
+  "pixel_art": false,
   "max_anim_scale": 1.0,
   "faces": -1,
   "source": "pixel_character_animation_pack/pip",

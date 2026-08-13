@@ -47,6 +47,10 @@ TARGET_STANDING = 108.0
 ALPHA_T = 16                # alpha above this counts as the character
 SPECKLE_FRAC = 0.005        # drop blobs smaller than this share of the biggest one
 NEAR_FRAC = 0.10            # a detached blob further than this from the body is bleed
+# The atlases draw the character ~170px tall and the pack wants ~108px. At that ratio
+# nearest-neighbour simply deletes every third row of pixels; an area filter keeps the
+# thin details that make the character read as drawn rather than corroded.
+RESAMPLE = Image.LANCZOS
 
 # Which way each pack's art points. The pet assumes right and mirrors from there, so a
 # character generated facing left has to say so or it walks backwards -- and climbs with
@@ -142,6 +146,80 @@ def foot_centre(im: Image.Image, bb, foot) -> float:
 MIN_CELL_FRAC = 0.62
 
 
+def strip_drawn_cursor(im: Image.Image):
+    """Erase the mouse pointer that's drawn into the cursor-play frames.
+
+    The generator helpfully illustrated what the character is hanging from by drawing a
+    mouse pointer above its hands. On a desktop pet that's a second, wrong, frozen
+    cursor floating next to your real one -- so it has to go.
+
+    It's identifiable without guessing: the pointer is drawn in flat greyscale (mean
+    channel spread ~5) while the characters are all colour-tinted (~33-41), it's bright,
+    it's small, and it's always the topmost thing in the frame. Requiring all four
+    together is what keeps it from eating Nyx's white paws or Pip's steel pauldrons.
+    """
+    fused = False
+    a = np.array(im)
+    alpha = a[..., 3] > ALPHA_T
+    if not alpha.any():
+        return (im, fused)
+    rgb = a[..., :3].astype(np.int16)
+    sat = rgb.max(axis=2) - rgb.min(axis=2)
+    val = rgb.max(axis=2)
+    ys = np.where(alpha.any(axis=1))[0]
+    xs = np.where(alpha.any(axis=0))[0]
+    height = int(ys.max() - ys.min() + 1)
+    width = int(xs.max() - xs.min() + 1)
+    total = int(alpha.sum())
+
+    cand = alpha & (sat < 20) & (val > 120)
+    if not cand.any():
+        return (im, fused)
+    lbl, n = ndimage.label(cand, np.ones((3, 3)))
+    if not n:
+        return (im, fused)
+
+    # Only remove a pointer drawn as its own separate object.
+    #
+    # Growing the grey core outward to catch the pointer's darker edge was tried and
+    # abandoned: greyscale is also Pip's steel plate and Bolt's chassis, so the growth
+    # ran into the character and ate armour. There is no colour test that separates a
+    # grey arrow from grey armour once they touch. So where the pointer overlaps the
+    # character it stays -- a stray arrow in a few frames is a far smaller problem than
+    # a hole in a knight, and the frames where it matters most (the long cursor_hang
+    # loops) draw it clear of the body anyway.
+    shapes, _ = ndimage.label(alpha, np.ones((3, 3)))
+    kill = np.zeros_like(alpha)
+    for i, sl in enumerate(ndimage.find_objects(lbl), start=1):
+        if sl is None:
+            continue
+        cy, cx = sl
+        seed_area = int((lbl[sl] == i).sum())
+        if not (20 <= seed_area <= 1500):
+            continue
+        if (cx.stop - cx.start) > width * 0.34 or (cy.stop - cy.start) > height * 0.34:
+            continue
+        ids = [v for v in np.unique(shapes[lbl == i]) if v]
+        island = np.isin(shapes, ids)
+        ia = int(island.sum())
+        iy, ix = np.where(island)
+        if ia <= min(2200, total * 0.12) and \
+                (iy.max() - iy.min() + 1) <= height * 0.4 and \
+                (ix.max() - ix.min() + 1) <= width * 0.4:
+            kill |= island                            # drawn as its own object: easy
+            continue
+        # Fused into a paw or gauntlet, and there is no way to cut it out: the pointer
+        # is flat grey, and so are Nyx's white paws, Pip's steel and Bolt's chassis.
+        # Every threshold that removes the arrow also bites the character. Report it
+        # instead, so the caller can drop the frame rather than ship the artefact.
+        fused = True
+    if not kill.any():
+        return (im, fused)
+    a = a.copy()
+    a[..., 3] = np.where(kill, 0, a[..., 3])
+    return (Image.fromarray(a, "RGBA"), fused)
+
+
 def load_from_atlases(src_dir, src):
     """Cut every animation out of the character's source atlases.
 
@@ -177,7 +255,22 @@ def load_from_atlases(src_dir, src):
     out = {}
     for anim, items in by_anim.items():
         frames = []
-        for _, im in sorted(items, key=lambda kv: kv[0]):
+        drawn_cursor = "cursor" in anim
+        dropped = 0
+        ordered = sorted(items, key=lambda kv: kv[0])
+        keep = []
+        for idx, im in ordered:
+            if drawn_cursor:
+                im, fused = strip_drawn_cursor(im)
+                if fused:
+                    dropped += 1
+                    keep.append((idx, im, True))
+                    continue
+            keep.append((idx, im, False))
+        # Only drop the un-fixable frames if enough remain to still read as a loop.
+        if dropped and (len(keep) - dropped) >= 6:
+            keep = [k for k in keep if not k[2]]
+        for idx, im, _ in keep:
             a = np.array(im)[..., 3] > ALPHA_T
             if not a.any():
                 continue
@@ -253,7 +346,11 @@ def convert(src_root, char_id, cmeta, dry=False, faces=None):
     # put its "hands" above its own head.
     out_man = {"canvas": {"w": canvas_w, "h": canvas_h, "baseline": baseline,
                           "standing": round(ref_h * scale)},
-               "pixel_art": True, "max_anim_scale": 1.0,
+               # Not hard pixel art: these are shaded, detailed illustrations in a
+               # pixel style. Nearest-neighbour scaling chews them -- it drops whole
+               # rows, so thin features (Bolt's antenna wire, panel lines, fingers)
+               # come out broken and dotted. Smooth scaling keeps them intact.
+               "pixel_art": False, "max_anim_scale": 1.0,
                "faces": faces,
                "source": f"pixel_character_animation_pack/{char_id}",
                "display_name": cmeta.get("display_name", char_id.title()),
@@ -267,7 +364,7 @@ def convert(src_root, char_id, cmeta, dry=False, faces=None):
             shutil.rmtree(d)
         os.makedirs(d)
         for i, (im, bb, w, h, rise, below, left) in enumerate(entries):
-            body = im.crop(bb).resize((w, h), Image.NEAREST)
+            body = im.crop(bb).resize((w, h), RESAMPLE)
             c = Image.new("RGBA", canvas, (0, 0, 0, 0))
             # feet on the baseline (minus any rise) and under the canvas centre line;
             # tail, cape or sword free to hang past either
@@ -291,7 +388,7 @@ def convert(src_root, char_id, cmeta, dry=False, faces=None):
     side = max(body.size)
     sq = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     sq.alpha_composite(body, ((side - body.width) // 2, (side - body.height) // 2))
-    sq = sq.resize((256, 256), Image.NEAREST)
+    sq = sq.resize((256, 256), RESAMPLE)
     sq.save(os.path.join(dest, "icon.png"))
     try:
         sq.save(os.path.join(dest, "icon.ico"),
