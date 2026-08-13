@@ -1,8 +1,8 @@
 {
   "canvas": {
-    "w": 208,
-    "h": 173,
-    "baseline": 153,
+    "w": 242,
+    "h": 180,
+    "baseline": 159,
     "standing": 108
   },
   "pixel_art": true,
@@ -12,226 +12,6 @@
   "display_name": "Nyx",
   "signature": "stalk_pounce",
   "anims": {
-    "chill_loaf": {
-      "frames": 8,
-      "fps": 7.0,
-      "loop": true,
-      "dir": "chill_loaf",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "ambient"
-    },
-    "climb": {
-      "frames": 16,
-      "fps": 12.0,
-      "loop": true,
-      "dir": "climb",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "normal"
-    },
-    "climb_core": {
-      "frames": 8,
-      "fps": 12.0,
-      "loop": true,
-      "dir": "climb_core",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "normal"
-    },
-    "cursor_hang": {
-      "frames": 16,
-      "fps": 12.0,
-      "loop": true,
-      "dir": "cursor_hang",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "normal"
-    },
-    "eat": {
-      "frames": 16,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "eat",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "normal"
-    },
-    "fall": {
-      "frames": 16,
-      "fps": 14.0,
-      "loop": false,
-      "dir": "fall",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "normal"
-    },
-    "feral_climb": {
-      "frames": 8,
-      "fps": 12.0,
-      "loop": true,
-      "dir": "feral_climb",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_cursor_sabotage": {
-      "frames": 16,
-      "fps": 12.0,
-      "loop": true,
-      "dir": "feral_cursor_sabotage",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_cursor_swing": {
-      "frames": 8,
-      "fps": 12.0,
-      "loop": true,
-      "dir": "feral_cursor_swing",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_fall": {
-      "frames": 8,
-      "fps": 14.0,
-      "loop": false,
-      "dir": "feral_fall",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_false_cute": {
-      "frames": 8,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "feral_false_cute",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_idle": {
-      "frames": 16,
-      "fps": 7.0,
-      "loop": true,
-      "dir": "feral_idle",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_shadow_pounce": {
-      "frames": 16,
-      "fps": 14.0,
-      "loop": true,
-      "dir": "feral_shadow_pounce",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_shiny_theft": {
-      "frames": 8,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "feral_shiny_theft",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_stalk": {
-      "frames": 16,
-      "fps": 9.0,
-      "loop": true,
-      "dir": "feral_stalk",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_taunt": {
-      "frames": 16,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "feral_taunt",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_transform": {
-      "frames": 16,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "feral_transform",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "feral_zoomies": {
-      "frames": 8,
-      "fps": 9.0,
-      "loop": true,
-      "dir": "feral_zoomies",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "groom": {
-      "frames": 8,
-      "fps": 9.0,
-      "loop": true,
-      "dir": "groom",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "ambient"
-    },
-    "happy": {
-      "frames": 8,
-      "fps": 10.0,
-      "loop": false,
-      "dir": "happy",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "normal"
-    },
     "idle": {
       "frames": 8,
       "fps": 8.0,
@@ -243,33 +23,44 @@
       "fps_scale": 1.0,
       "category": "normal"
     },
-    "look_around": {
-      "frames": 8,
-      "fps": 9.0,
+    "walk": {
+      "frames": 7,
+      "fps": 12.0,
       "loop": true,
-      "dir": "look_around",
+      "dir": "walk",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
       "fps_scale": 1.0,
-      "category": "ambient"
-    },
-    "peek_hide": {
-      "frames": 8,
-      "fps": 9.0,
-      "loop": true,
-      "dir": "peek_hide",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "ambient"
+      "category": "normal"
     },
     "run": {
-      "frames": 8,
+      "frames": 7,
       "fps": 14.0,
       "loop": true,
       "dir": "run",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "normal"
+    },
+    "climb_core": {
+      "frames": 7,
+      "fps": 12.0,
+      "loop": true,
+      "dir": "climb_core",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "normal"
+    },
+    "happy": {
+      "frames": 7,
+      "fps": 10.0,
+      "loop": false,
+      "dir": "happy",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
@@ -287,6 +78,39 @@
       "fps_scale": 1.0,
       "category": "normal"
     },
+    "eat": {
+      "frames": 15,
+      "fps": 9.0,
+      "loop": false,
+      "dir": "eat",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "normal"
+    },
+    "climb": {
+      "frames": 16,
+      "fps": 12.0,
+      "loop": true,
+      "dir": "climb",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "normal"
+    },
+    "fall": {
+      "frames": 16,
+      "fps": 14.0,
+      "loop": false,
+      "dir": "fall",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "normal"
+    },
     "stalk_pounce": {
       "frames": 16,
       "fps": 14.0,
@@ -298,8 +122,52 @@
       "fps_scale": 1.0,
       "category": "normal"
     },
+    "cursor_hang": {
+      "frames": 16,
+      "fps": 12.0,
+      "loop": true,
+      "dir": "cursor_hang",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "normal"
+    },
+    "look_around": {
+      "frames": 7,
+      "fps": 9.0,
+      "loop": true,
+      "dir": "look_around",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "ambient"
+    },
+    "chill_loaf": {
+      "frames": 7,
+      "fps": 7.0,
+      "loop": true,
+      "dir": "chill_loaf",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "ambient"
+    },
+    "groom": {
+      "frames": 7,
+      "fps": 9.0,
+      "loop": true,
+      "dir": "groom",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "ambient"
+    },
     "tail_play": {
-      "frames": 8,
+      "frames": 7,
       "fps": 9.0,
       "loop": false,
       "dir": "tail_play",
@@ -309,8 +177,19 @@
       "fps_scale": 1.0,
       "category": "ambient"
     },
+    "peek_hide": {
+      "frames": 6,
+      "fps": 9.0,
+      "loop": true,
+      "dir": "peek_hide",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "ambient"
+    },
     "turn_observe": {
-      "frames": 8,
+      "frames": 7,
       "fps": 9.0,
       "loop": true,
       "dir": "turn_observe",
@@ -320,16 +199,137 @@
       "fps_scale": 1.0,
       "category": "ambient"
     },
-    "walk": {
-      "frames": 8,
-      "fps": 12.0,
-      "loop": true,
-      "dir": "walk",
+    "feral_transform": {
+      "frames": 16,
+      "fps": 9.0,
+      "loop": false,
+      "dir": "feral_transform",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
       "fps_scale": 1.0,
-      "category": "normal"
+      "category": "rage"
+    },
+    "feral_idle": {
+      "frames": 15,
+      "fps": 7.0,
+      "loop": true,
+      "dir": "feral_idle",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "feral_stalk": {
+      "frames": 13,
+      "fps": 9.0,
+      "loop": true,
+      "dir": "feral_stalk",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "feral_shadow_pounce": {
+      "frames": 14,
+      "fps": 14.0,
+      "loop": true,
+      "dir": "feral_shadow_pounce",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "feral_cursor_sabotage": {
+      "frames": 15,
+      "fps": 12.0,
+      "loop": true,
+      "dir": "feral_cursor_sabotage",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "feral_taunt": {
+      "frames": 15,
+      "fps": 9.0,
+      "loop": false,
+      "dir": "feral_taunt",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "feral_climb": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "dir": "feral_climb",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "feral_fall": {
+      "frames": 8,
+      "fps": 14.0,
+      "loop": false,
+      "dir": "feral_fall",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "feral_zoomies": {
+      "frames": 8,
+      "fps": 9.0,
+      "loop": true,
+      "dir": "feral_zoomies",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "feral_cursor_swing": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "dir": "feral_cursor_swing",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "feral_shiny_theft": {
+      "frames": 8,
+      "fps": 9.0,
+      "loop": false,
+      "dir": "feral_shiny_theft",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "feral_false_cute": {
+      "frames": 7,
+      "fps": 9.0,
+      "loop": false,
+      "dir": "feral_false_cute",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
     }
   }
 }

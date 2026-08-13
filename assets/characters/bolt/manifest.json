@@ -1,8 +1,8 @@
 {
   "canvas": {
-    "w": 142,
+    "w": 172,
     "h": 134,
-    "baseline": 118,
+    "baseline": 120,
     "standing": 108
   },
   "pixel_art": true,
@@ -12,22 +12,33 @@
   "display_name": "Bolt",
   "signature": "self_repair",
   "anims": {
-    "chill": {
+    "idle": {
       "frames": 8,
-      "fps": 7.0,
+      "fps": 8.0,
       "loop": true,
-      "dir": "chill",
+      "dir": "idle",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
       "fps_scale": 1.0,
-      "category": "ambient"
+      "category": "normal"
     },
-    "climb": {
-      "frames": 16,
+    "walk": {
+      "frames": 8,
       "fps": 12.0,
       "loop": true,
-      "dir": "climb",
+      "dir": "walk",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "normal"
+    },
+    "run": {
+      "frames": 8,
+      "fps": 14.0,
+      "loop": true,
+      "dir": "run",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
@@ -45,11 +56,22 @@
       "fps_scale": 1.0,
       "category": "normal"
     },
-    "cursor_hang": {
-      "frames": 16,
-      "fps": 12.0,
+    "happy": {
+      "frames": 8,
+      "fps": 10.0,
+      "loop": false,
+      "dir": "happy",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "normal"
+    },
+    "sleep": {
+      "frames": 15,
+      "fps": 6.0,
       "loop": true,
-      "dir": "cursor_hang",
+      "dir": "sleep",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
@@ -67,137 +89,16 @@
       "fps_scale": 1.0,
       "category": "normal"
     },
-    "evil_climb": {
-      "frames": 8,
-      "fps": 12.0,
-      "loop": true,
-      "dir": "evil_climb",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_cursor_ride": {
-      "frames": 8,
-      "fps": 12.0,
-      "loop": true,
-      "dir": "evil_cursor_ride",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_cursor_sabotage": {
+    "climb": {
       "frames": 16,
       "fps": 12.0,
       "loop": true,
-      "dir": "evil_cursor_sabotage",
+      "dir": "climb",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
       "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_data_theft": {
-      "frames": 8,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "evil_data_theft",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_fall": {
-      "frames": 8,
-      "fps": 14.0,
-      "loop": false,
-      "dir": "evil_fall",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_false_calm": {
-      "frames": 8,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "evil_false_calm",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_idle": {
-      "frames": 16,
-      "fps": 7.0,
-      "loop": true,
-      "dir": "evil_idle",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_overload_tantrum": {
-      "frames": 8,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "evil_overload_tantrum",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_prowl": {
-      "frames": 16,
-      "fps": 9.0,
-      "loop": true,
-      "dir": "evil_prowl",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_scrap_burst": {
-      "frames": 16,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "evil_scrap_burst",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_taunt": {
-      "frames": 16,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "evil_taunt",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
-    },
-    "evil_transform": {
-      "frames": 16,
-      "fps": 9.0,
-      "loop": false,
-      "dir": "evil_transform",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "rage"
+      "category": "normal"
     },
     "fall": {
       "frames": 16,
@@ -210,22 +111,22 @@
       "fps_scale": 1.0,
       "category": "normal"
     },
-    "happy": {
-      "frames": 8,
-      "fps": 10.0,
+    "self_repair": {
+      "frames": 16,
+      "fps": 9.0,
       "loop": false,
-      "dir": "happy",
+      "dir": "self_repair",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
       "fps_scale": 1.0,
       "category": "normal"
     },
-    "idle": {
-      "frames": 8,
-      "fps": 8.0,
+    "cursor_hang": {
+      "frames": 16,
+      "fps": 12.0,
       "loop": true,
-      "dir": "idle",
+      "dir": "cursor_hang",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
@@ -237,6 +138,17 @@
       "fps": 9.0,
       "loop": true,
       "dir": "look_around",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "ambient"
+    },
+    "chill": {
+      "frames": 8,
+      "fps": 7.0,
+      "loop": true,
+      "dir": "chill",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
@@ -265,38 +177,16 @@
       "fps_scale": 1.0,
       "category": "ambient"
     },
-    "run": {
+    "washer_play": {
       "frames": 8,
-      "fps": 14.0,
-      "loop": true,
-      "dir": "run",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "normal"
-    },
-    "self_repair": {
-      "frames": 16,
       "fps": 9.0,
       "loop": false,
-      "dir": "self_repair",
+      "dir": "washer_play",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
       "fps_scale": 1.0,
-      "category": "normal"
-    },
-    "sleep": {
-      "frames": 16,
-      "fps": 6.0,
-      "loop": true,
-      "dir": "sleep",
-      "scale": 1.0,
-      "pingpong": false,
-      "hold": {},
-      "fps_scale": 1.0,
-      "category": "normal"
+      "category": "ambient"
     },
     "turn_observe": {
       "frames": 8,
@@ -309,27 +199,137 @@
       "fps_scale": 1.0,
       "category": "ambient"
     },
-    "walk": {
+    "evil_transform": {
+      "frames": 16,
+      "fps": 9.0,
+      "loop": false,
+      "dir": "evil_transform",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "evil_idle": {
+      "frames": 16,
+      "fps": 7.0,
+      "loop": true,
+      "dir": "evil_idle",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "evil_prowl": {
+      "frames": 16,
+      "fps": 9.0,
+      "loop": true,
+      "dir": "evil_prowl",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "evil_scrap_burst": {
+      "frames": 15,
+      "fps": 9.0,
+      "loop": false,
+      "dir": "evil_scrap_burst",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "evil_cursor_sabotage": {
+      "frames": 16,
+      "fps": 12.0,
+      "loop": true,
+      "dir": "evil_cursor_sabotage",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "evil_taunt": {
+      "frames": 15,
+      "fps": 9.0,
+      "loop": false,
+      "dir": "evil_taunt",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "evil_climb": {
       "frames": 8,
       "fps": 12.0,
       "loop": true,
-      "dir": "walk",
+      "dir": "evil_climb",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
       "fps_scale": 1.0,
-      "category": "normal"
+      "category": "rage"
     },
-    "washer_play": {
+    "evil_fall": {
+      "frames": 8,
+      "fps": 14.0,
+      "loop": false,
+      "dir": "evil_fall",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "evil_overload_tantrum": {
       "frames": 8,
       "fps": 9.0,
       "loop": false,
-      "dir": "washer_play",
+      "dir": "evil_overload_tantrum",
       "scale": 1.0,
       "pingpong": false,
       "hold": {},
       "fps_scale": 1.0,
-      "category": "ambient"
+      "category": "rage"
+    },
+    "evil_cursor_ride": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "dir": "evil_cursor_ride",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "evil_data_theft": {
+      "frames": 8,
+      "fps": 9.0,
+      "loop": false,
+      "dir": "evil_data_theft",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
+    },
+    "evil_false_calm": {
+      "frames": 8,
+      "fps": 9.0,
+      "loop": false,
+      "dir": "evil_false_calm",
+      "scale": 1.0,
+      "pingpong": false,
+      "hold": {},
+      "fps_scale": 1.0,
+      "category": "rage"
     }
   }
 }

@@ -135,17 +135,58 @@ def foot_centre(im: Image.Image, bb, foot) -> float:
     return (bb[0] + bb[2]) / 2.0
 
 
-def load_anim(src_root, meta):
-    """-> [(image, bbox, foot_y, foot_cx)] for one animation, cleaned."""
-    out = []
-    for rel in meta["frames"]:
-        p = os.path.join(src_root, rel)
+# Within one animation row the poses are all roughly the same size -- measured across
+# every page, real frames land between 0.90x and 1.06x their row's median area, while a
+# cell severed by two sprites drawn touching comes out at 0.55x or less. 0.62 sits in
+# the gap: a short animation beats an animation with half a character in it.
+MIN_CELL_FRAC = 0.62
+
+
+def load_from_atlases(src_dir, src):
+    """Cut every animation out of the character's source atlases.
+
+    Deliberately ignores the pack's own `frames/<anim>/` PNGs. Its cell grid is offset
+    from where the sprites actually sit, so most of those files hold the right half of
+    one pose beside the left half of the next -- importing them produced characters that
+    were visibly missing pixels and moved like a flick-book with every other page torn.
+    """
+    from extract_atlas import cells
+
+    by_anim = {}
+    for at in src.get("source_atlases", []):
+        p = os.path.join(src_dir, at.get("transparent_file") or at["file"])
         if not os.path.exists(p):
+            print(f"    !! missing atlas {at.get('transparent_file')}")
             continue
-        im, bb = clean(Image.open(p).convert("RGBA"))
-        if im is not None:
+        grid = cells(p, at["grid"]["rows"], at["grid"]["columns"])
+        start = int(at.get("frame_start", 1))
+        for r, anim in enumerate(at.get("row_order", [])):
+            if r >= len(grid):
+                break
+            row = grid[r]
+            areas = [0 if im is None else int((np.array(im)[..., 3] > ALPHA_T).sum())
+                     for im in row]
+            live = [a for a in areas if a > 0]
+            floor_area = (np.median(live) * MIN_CELL_FRAC) if live else 0
+            for c, im in enumerate(row):
+                # a scrap left over from two sprites drawn touching is not a frame
+                if im is None or areas[c] < floor_area:
+                    continue
+                by_anim.setdefault(anim, []).append((start + c, im))
+
+    out = {}
+    for anim, items in by_anim.items():
+        frames = []
+        for _, im in sorted(items, key=lambda kv: kv[0]):
+            a = np.array(im)[..., 3] > ALPHA_T
+            if not a.any():
+                continue
+            ys, xs = np.where(a)
+            bb = (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
             foot = foot_line(im, bb)
-            out.append((im, bb, foot, foot_centre(im, bb, foot)))
+            frames.append((im, bb, foot, foot_centre(im, bb, foot)))
+        if frames:
+            out[anim] = frames
     return out
 
 
@@ -156,11 +197,11 @@ def convert(src_root, char_id, cmeta, dry=False, faces=None):
         src = json.load(fh)
     src_dir = os.path.dirname(man_path)
 
+    cut = load_from_atlases(src_dir, src)
     anims = {}
-    for name, meta in src["animations"].items():
-        frames = load_anim(src_root, meta)
-        if frames:
-            anims[name] = (meta, frames)
+    for name, frames in cut.items():
+        meta = src["animations"].get(name, {"fps": 8, "loop": True, "category": "normal"})
+        anims[name] = (meta, frames)
     if not anims:
         print(f"  !! {char_id}: no frames found")
         return None
