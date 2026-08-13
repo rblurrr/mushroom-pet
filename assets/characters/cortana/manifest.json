@@ -1,0 +1,487 @@
+{
+  "canvas": {
+    "w": 176,
+    "h": 148,
+    "baseline": 142
+  },
+  "pixel_art": true,
+  "max_anim_scale": 1.5,
+  "anims": {
+    "idle": {
+      "frames": 5,
+      "fps": 4,
+      "loop": true,
+      "dir": "idle",
+      "scale": 1.0
+    },
+    "idle_alt": {
+      "frames": 5,
+      "fps": 3.5,
+      "loop": true,
+      "dir": "idle_alt",
+      "scale": 1.0
+    },
+    "look": {
+      "frames": 5,
+      "fps": 3,
+      "loop": true,
+      "dir": "look",
+      "scale": 1.0
+    },
+    "walk": {
+      "frames": 6,
+      "fps": 11,
+      "loop": true,
+      "dir": "walk",
+      "scale": 1.0
+    },
+    "run": {
+      "frames": 4,
+      "fps": 15,
+      "loop": true,
+      "dir": "run",
+      "scale": 1.0
+    },
+    "turn": {
+      "frames": 4,
+      "fps": 9,
+      "loop": false,
+      "dir": "turn",
+      "scale": 1.0
+    },
+    "jump": {
+      "frames": 5,
+      "fps": 12,
+      "loop": false,
+      "dir": "jump",
+      "scale": 1.0
+    },
+    "fall": {
+      "frames": 4,
+      "fps": 9,
+      "loop": true,
+      "dir": "fall",
+      "scale": 1.0
+    },
+    "land": {
+      "frames": 2,
+      "fps": 10,
+      "loop": false,
+      "dir": "land",
+      "scale": 1.0
+    },
+    "sleep": {
+      "frames": 1,
+      "fps": 1.4,
+      "loop": true,
+      "dir": "sleep",
+      "scale": 1.0
+    },
+    "sit": {
+      "frames": 1,
+      "fps": 1.2,
+      "loop": true,
+      "dir": "sit",
+      "scale": 1.0
+    },
+    "lean": {
+      "frames": 1,
+      "fps": 1.2,
+      "loop": true,
+      "dir": "lean",
+      "scale": 1.0
+    },
+    "peek": {
+      "frames": 1,
+      "fps": 1.4,
+      "loop": true,
+      "dir": "peek",
+      "scale": 1.0
+    },
+    "wave": {
+      "frames": 3,
+      "fps": 5,
+      "loop": false,
+      "dir": "wave",
+      "scale": 1.0
+    },
+    "point": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "point",
+      "scale": 1.0
+    },
+    "think": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "think",
+      "scale": 1.0
+    },
+    "confused": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "confused",
+      "scale": 1.0
+    },
+    "excited": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "excited",
+      "scale": 1.0
+    },
+    "clap": {
+      "frames": 2,
+      "fps": 7,
+      "loop": true,
+      "dir": "clap",
+      "scale": 1.0
+    },
+    "cheer": {
+      "frames": 2,
+      "fps": 6,
+      "loop": false,
+      "dir": "cheer",
+      "scale": 1.0
+    },
+    "dance": {
+      "frames": 2,
+      "fps": 5,
+      "loop": true,
+      "dir": "dance",
+      "scale": 1.0
+    },
+    "shrug": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "shrug",
+      "scale": 1.0
+    },
+    "facepalm": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "facepalm",
+      "scale": 1.0
+    },
+    "bow": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "bow",
+      "scale": 1.0
+    },
+    "greet": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "greet",
+      "scale": 1.0
+    },
+    "ok": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "ok",
+      "scale": 1.0
+    },
+    "heart": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "heart",
+      "scale": 1.0
+    },
+    "sad": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "sad",
+      "scale": 1.0
+    },
+    "startle": {
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "dir": "startle",
+      "scale": 1.0
+    },
+    "hologram": {
+      "frames": 3,
+      "fps": 2.5,
+      "loop": true,
+      "dir": "hologram",
+      "scale": 1.0
+    },
+    "type": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "type",
+      "scale": 1.0
+    },
+    "drink": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "drink",
+      "scale": 1.0
+    },
+    "eat": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "eat",
+      "scale": 1.0
+    },
+    "spin": {
+      "frames": 1,
+      "fps": 8,
+      "loop": true,
+      "dir": "spin",
+      "scale": 1.0
+    },
+    "look_around": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "look_around",
+      "scale": 1.0
+    },
+    "climb": {
+      "frames": 6,
+      "fps": 9,
+      "loop": true,
+      "dir": "climb",
+      "scale": 1.0
+    },
+    "hang": {
+      "frames": 5,
+      "fps": 3,
+      "loop": true,
+      "dir": "hang",
+      "scale": 1.0
+    },
+    "wall_push": {
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "dir": "wall_push",
+      "scale": 1.0
+    },
+    "vault": {
+      "frames": 1,
+      "fps": 10,
+      "loop": false,
+      "dir": "vault",
+      "scale": 1.0
+    },
+    "dash": {
+      "frames": 2,
+      "fps": 14,
+      "loop": true,
+      "dir": "dash",
+      "scale": 1.0
+    },
+    "slide": {
+      "frames": 2,
+      "fps": 9,
+      "loop": false,
+      "dir": "slide",
+      "scale": 1.0
+    },
+    "hover": {
+      "frames": 2,
+      "fps": 6,
+      "loop": true,
+      "dir": "hover",
+      "scale": 1.0
+    },
+    "cut_approach": {
+      "frames": 1,
+      "fps": 2,
+      "loop": true,
+      "dir": "cut_approach",
+      "scale": 1.5
+    },
+    "cut_scan": {
+      "frames": 1,
+      "fps": 3,
+      "loop": true,
+      "dir": "cut_scan",
+      "scale": 1.5
+    },
+    "cut_charge": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "cut_charge",
+      "scale": 1.5
+    },
+    "cut_break": {
+      "frames": 1,
+      "fps": 7,
+      "loop": false,
+      "dir": "cut_break",
+      "scale": 1.5
+    },
+    "cut_emerge": {
+      "frames": 1,
+      "fps": 5,
+      "loop": false,
+      "dir": "cut_emerge",
+      "scale": 1.5
+    },
+    "cut_repair": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "cut_repair",
+      "scale": 1.5
+    },
+    "cut_restored": {
+      "frames": 1,
+      "fps": 3,
+      "loop": false,
+      "dir": "cut_restored",
+      "scale": 1.5
+    },
+    "cut_leave": {
+      "frames": 1,
+      "fps": 5,
+      "loop": false,
+      "dir": "cut_leave",
+      "scale": 1.5
+    },
+    "evil_transform": {
+      "frames": 4,
+      "fps": 5,
+      "loop": false,
+      "dir": "evil_transform",
+      "scale": 1.0
+    },
+    "evil_idle": {
+      "frames": 5,
+      "fps": 4,
+      "loop": true,
+      "dir": "evil_idle",
+      "scale": 1.0
+    },
+    "evil_laugh": {
+      "frames": 2,
+      "fps": 6,
+      "loop": true,
+      "dir": "evil_laugh",
+      "scale": 1.0
+    },
+    "evil_angry": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "evil_angry",
+      "scale": 1.0
+    },
+    "evil_charge": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "evil_charge",
+      "scale": 1.0
+    },
+    "evil_glitch": {
+      "frames": 2,
+      "fps": 12,
+      "loop": true,
+      "dir": "evil_glitch",
+      "scale": 1.0
+    },
+    "evil_walk": {
+      "frames": 3,
+      "fps": 11,
+      "loop": true,
+      "dir": "evil_walk",
+      "scale": 1.0
+    },
+    "evil_run": {
+      "frames": 3,
+      "fps": 15,
+      "loop": true,
+      "dir": "evil_run",
+      "scale": 1.0
+    },
+    "evil_jump": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "evil_jump",
+      "scale": 1.0
+    },
+    "evil_float": {
+      "frames": 3,
+      "fps": 5,
+      "loop": true,
+      "dir": "evil_float",
+      "scale": 1.0
+    },
+    "evil_blast": {
+      "frames": 2,
+      "fps": 9,
+      "loop": false,
+      "dir": "evil_blast",
+      "scale": 1.0
+    },
+    "evil_teleport": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "evil_teleport",
+      "scale": 1.0
+    },
+    "evil_hover": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "evil_hover",
+      "scale": 1.0
+    },
+    "evil_orbs": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "evil_orbs",
+      "scale": 1.0
+    },
+    "evil_laser": {
+      "frames": 1,
+      "fps": 4,
+      "loop": true,
+      "dir": "evil_laser",
+      "scale": 1.0
+    },
+    "evil_climb": {
+      "frames": 3,
+      "fps": 9,
+      "loop": true,
+      "dir": "evil_climb",
+      "scale": 1.0
+    },
+    "evil_dash": {
+      "frames": 1,
+      "fps": 14,
+      "loop": true,
+      "dir": "evil_dash",
+      "scale": 1.0
+    },
+    "evil_cut_break": {
+      "frames": 4,
+      "fps": 7,
+      "loop": false,
+      "dir": "evil_cut_break",
+      "scale": 1.5
+    }
+  }
+}

@@ -16,3 +16,8 @@ config.json
 api_token.txt
 *.log
 inbox/
+
+# source atlases, contact sheets and working strips -- large, and regenerable from
+# the original animation pack. The finished frames under assets/characters/ are what
+# the pet actually loads.
+assets/_raw/
