@@ -146,6 +146,31 @@ def foot_centre(im: Image.Image, bb, foot) -> float:
 MIN_CELL_FRAC = 0.62
 
 
+# Hanging poses are anchored by the grip, not the feet. The pet suspends these from
+# your pointer, so the hands are the fixed point and the body is what swings; aligning
+# them by the feet instead pins the dangling end and throws the hands around the screen
+# -- up to 66px of travel on Pip, which is what made grabbing the cursor look broken.
+HANG_ANIMS = ("hang",)
+# Fraction of the standing height at which the hands sit. Must match pet.HAND_FRAC,
+# which is where the pet actually puts the pivot.
+HAND_FRAC = 0.88
+
+
+def is_hang(anim: str) -> bool:
+    return any(k in anim for k in HANG_ANIMS)
+
+
+def grip_point(im: Image.Image, bb):
+    """(x, y) of the raised hands: the centre of the topmost sliver of the sprite."""
+    a = np.array(im)[..., 3] > ALPHA_T
+    depth = max(3, int((bb[3] - bb[1]) * 0.10))
+    band = a[bb[1]:bb[1] + depth, bb[0]:bb[2]]
+    if not band.any():
+        return ((bb[0] + bb[2]) / 2.0, float(bb[1]))
+    xs = np.where(band.any(axis=0))[0]
+    return (bb[0] + (int(xs.min()) + int(xs.max()) + 1) / 2.0, float(bb[1]))
+
+
 def strip_drawn_cursor(im: Image.Image):
     """Erase the mouse pointer that's drawn into the cursor-play frames.
 
@@ -317,18 +342,30 @@ def convert(src_root, char_id, cmeta, dry=False, faces=None):
     # ---- first pass: where does every frame land, and how big must the canvas be? ----
     placed = {}
     need_l = need_r = need_h = 0
+    hand_h = TARGET_STANDING * HAND_FRAC
     for name, (meta, frames) in anims.items():
+        hang = is_hang(name)
         # the animation's lowest foot line is its ground contact; everything else rises
         floor = max(f for _, _, f, _ in frames)
         entries = []
         for im, bb, foot, cx in frames:
             w = max(1, round((bb[2] - bb[0]) * scale))
             h = max(1, round((bb[3] - bb[1]) * scale))
-            # measured at the feet, but the sprite is placed by its bounding box, so
-            # carry the offsets from the anchor through into the paste position
-            rise = round((floor - foot) * scale)      # 0 for the grounded frame
-            below = round((bb[3] - foot) * scale)     # tail/cape hanging under the feet
-            left = round((cx - bb[0]) * scale)        # anchor's offset inside the sprite
+            if hang:
+                # Pin the grip and let the body dangle: the hands go where the pointer
+                # is, and everything below is free to swing.
+                gx, _ = grip_point(im, bb)
+                left = round((gx - bb[0]) * scale)
+                # the paste puts the sprite's top at baseline - h - rise + below, and we
+                # want it at baseline - hand_h, so below = h - hand_h
+                below = h - round(hand_h)
+                rise = 0
+            else:
+                # measured at the feet, but the sprite is placed by its bounding box, so
+                # carry the offsets from the anchor through into the paste position
+                rise = round((floor - foot) * scale)  # 0 for the grounded frame
+                below = round((bb[3] - foot) * scale)  # tail/cape hanging under the feet
+                left = round((cx - bb[0]) * scale)    # anchor's offset inside the sprite
             entries.append((im, bb, w, h, rise, below, left))
             need_l = max(need_l, left)
             need_r = max(need_r, w - left)
