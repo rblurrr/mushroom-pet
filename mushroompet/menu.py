@@ -1,6 +1,7 @@
 """The right-click menu (also used as the tray menu)."""
 from __future__ import annotations
 import os
+import threading
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QActionGroup, QGuiApplication
@@ -8,6 +9,7 @@ from PySide6.QtWidgets import QMenu, QFileDialog, QInputDialog, QMessageBox
 
 from . import launchers
 from .config import SIZES, SPEEDS, APP_DIR
+from .creator import CreatorEngine
 from .notify import parse_time_phrase
 from .platforms import backend
 
@@ -28,11 +30,13 @@ QMenu::indicator { width: 14px; height: 14px; left: 6px; }
 
 
 class MenuFactory:
-    def __init__(self, pet, cfg, notifier, on_quit):
+    def __init__(self, pet, cfg, notifier, on_quit, creator=None, life=None):
         self.pet = pet
         self.cfg = cfg
         self.notifier = notifier
         self.on_quit = on_quit
+        self.creator = creator or CreatorEngine(os.path.join(APP_DIR, "creator"))
+        self.life = life
 
     def build(self) -> QMenu:
         m = QMenu()
@@ -103,6 +107,14 @@ class MenuFactory:
         m.addAction("Come here").triggered.connect(self.pet.come_here)
         m.addAction("Wave at me").triggered.connect(lambda: self.pet.do_verb("wave"))
         m.addAction("Jump").triggered.connect(lambda: self.pet.do_verb("jump"))
+        tricks = m.addMenu("Cursor tricks")
+        tricks.setStyleSheet(MENU_QSS)
+        tricks.addAction("Bounce on cursor").triggered.connect(
+            lambda: self.pet.do_verb("cursor_bounce"))
+        tricks.addAction("Hang from cursor").triggered.connect(
+            lambda: self.pet.do_verb("cursor_hang"))
+        tricks.addAction("Orbit cursor").triggered.connect(
+            lambda: self.pet.do_verb("cursor_orbit"))
         if len(QGuiApplication.screens()) > 1:
             m.addAction("Hop to other monitor").triggered.connect(
                 lambda: self.pet.do_verb("hop"))
@@ -123,6 +135,37 @@ class MenuFactory:
         else:
             m.addAction("Go to sleep").triggered.connect(lambda: self.pet.do_verb("sleep"))
             m.addAction("Sit still").triggered.connect(lambda: self.pet.do_verb("sit"))
+
+        studio = m.addMenu("Creator Studio")
+        studio.setStyleSheet(MENU_QSS)
+        studio.addAction("Build a project hub…").triggered.connect(self._creator_hub)
+        studio.addAction("Build a playable game…").triggered.connect(self._creator_game)
+        studio.addAction("Draft a social post…").triggered.connect(self._creator_post)
+        if self.life is not None:
+            life_menu = studio.addMenu("Autonomous life")
+            life_menu.setStyleSheet(MENU_QSS)
+            auto = life_menu.addAction("Work on its own")
+            auto.setCheckable(True)
+            auto.setChecked(bool(self.life.enabled))
+            auto.toggled.connect(self._toggle_life)
+            now = life_menu.addAction("Do the next thing now")
+            now.setEnabled(bool(self.life.enabled) and not self.creator.paused)
+            now.triggered.connect(self._life_now)
+            life_menu.addAction("Set what I'm working toward…").triggered.connect(self._life_focus)
+            life_menu.addAction("Today's plan…").triggered.connect(self._life_plan)
+            life_menu.addAction("Activity log…").triggered.connect(self._life_log)
+            life_menu.addAction("Earnings ledger…").triggered.connect(self._life_earnings)
+            life_menu.addAction("Log money that came in…").triggered.connect(self._life_earn)
+            life_menu.addAction("Open dashboard").triggered.connect(self._life_dashboard)
+        pending = self.creator.list_actions("pending_approval")
+        studio.addAction(f"Approval queue ({len(pending)})").triggered.connect(self._creator_queue)
+        studio.addSeparator()
+        pause = studio.addAction("Emergency pause")
+        pause.setCheckable(True)
+        pause.setChecked(self.creator.paused)
+        pause.toggled.connect(self._toggle_pause)
+        studio.addAction("Open creator files").triggered.connect(
+            lambda: backend.open_path(str(self.creator.root)))
 
         fire = m.addMenu("Fire mode")
         fire.setStyleSheet(MENU_QSS)
@@ -567,3 +610,200 @@ class MenuFactory:
         ok, info = launchers.remove_autostart()
         self.pet.speak("Autostart removed." if ok else f"Couldn't remove it ({info})",
                        5, "info" if ok else "urgent")
+
+    # ---- creator studio ----
+    def _creator_hub(self):
+        title, ok = QInputDialog.getText(None, "Build a project hub", "Project name:")
+        if not ok or not title.strip():
+            return
+        brief, ok = QInputDialog.getMultiLineText(None, "Project brief", "What should it do?")
+        if not ok:
+            return
+        action = self.creator.submit("create_hub", {"title": title, "brief": brief})
+        backend.open_path(action["result"]["preview"])
+        self.pet.speak("I built the hub locally and opened its preview.", 6, "happy")
+
+    def _creator_game(self):
+        title, ok = QInputDialog.getText(None, "Build a playable game", "Game name:")
+        if not ok or not title.strip():
+            return
+        brief, ok = QInputDialog.getMultiLineText(None, "Game brief", "What is the game about?")
+        if not ok:
+            return
+        action = self.creator.submit("create_game", {"title": title, "brief": brief})
+        backend.open_path(action["result"]["preview"])
+        self.pet.speak("I built a playable local game and opened it.", 6, "happy")
+
+    def _creator_post(self):
+        text, ok = QInputDialog.getMultiLineText(None, "Draft a social post", "Post text:")
+        if not ok or not text.strip():
+            return
+        platform, ok = QInputDialog.getItem(
+            None, "Platform", "Draft for:",
+            ["general", "instagram", "tiktok", "x", "facebook", "linkedin"], 0, False)
+        if not ok:
+            return
+        action = self.creator.submit("draft_social", {"platform": platform, "text": text})
+        self.pet.speak("Draft saved locally. I will not publish without approval.", 6, "happy")
+        backend.open_path(action["result"]["path"])
+
+    def _creator_queue(self):
+        pending = self.creator.list_actions("pending_approval")
+        if not pending:
+            QMessageBox.information(None, "Approval queue", "Nothing is waiting for approval.")
+            return
+        labels = []
+        for action in pending[:20]:
+            summary = action["payload"].get("item") or action["payload"].get("text") \
+                or action["payload"].get("repository_name") or action["payload"].get("recipient") \
+                or "request"
+            labels.append(f'{action["id"]}  |  {action["kind"]}  |  {str(summary)[:70]}')
+        choice, ok = QInputDialog.getItem(
+            None, "Approval queue",
+            "Nothing here is sent or spent. Approving only records your yes.",
+            labels, 0, False)
+        if not ok:
+            return
+        action = pending[labels.index(choice)]
+        detail = _approval_warning(action["kind"]) + "\n\n" + choice
+        box = QMessageBox()
+        box.setWindowTitle("Approve this?")
+        box.setText(detail)
+        approve = box.addButton("Approve", QMessageBox.AcceptRole)
+        reject = box.addButton("Reject", QMessageBox.DestructiveRole)
+        box.addButton("Leave it", QMessageBox.RejectRole)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is approve:
+            if self.life is not None:
+                self.life.approve(action["id"], "Approved from the pet menu")
+            else:
+                self.creator.approve(action["id"], "Approved from the pet menu")
+                self.pet.speak("Approved. I still won't send it myself.", 6, "info", "Approval")
+        elif clicked is reject:
+            note, noted = QInputDialog.getText(None, "Reject", "Why not? A reason is required.")
+            if not noted or not note.strip():
+                self.pet.speak("I left it pending. A rejection needs a reason.", 5, "info")
+                return
+            if self.life is not None:
+                self.life.reject(action["id"], note.strip())
+            else:
+                self.creator.reject(action["id"], note.strip())
+                self.pet.speak("Rejected. I'll leave it alone.", 5, "info")
+
+    def _toggle_pause(self, value):
+        self.creator.set_paused(bool(value))
+        self.pet.speak("Paused. I won't start anything new." if value else "Unpaused.",
+                       4.5, "info" if value else "happy")
+
+    def _toggle_life(self, value):
+        if self.life is None:
+            return
+        self.life.set_enabled(bool(value))
+        self.pet.speak(
+            "I'll work through the plan, and I'll ask before anything public." if value
+            else "Autonomous life is off. I'll wait until you ask.",
+            6, "happy" if value else "info")
+
+    def _life_now(self):
+        if self.life is None:
+            return
+        if self.creator.paused or not self.life.enabled:
+            self.pet.speak("Turn autonomous life on, and take me off pause, first.", 5, "info")
+            return
+        self.pet.speak("On it.", 2.2, "info", "Life")
+        threading.Thread(target=self._life_now_bg, name="mushroom-life-now", daemon=True).start()
+
+    def _life_now_bg(self):
+        try:
+            self.life.tick(force=True)
+        except Exception:
+            pass
+
+    def _life_focus(self):
+        if self.life is None:
+            return
+        niche, ok = QInputDialog.getText(
+            None, "What are we making?", "Niche or topic:", text=self.life.niche)
+        if not ok or not niche.strip():
+            return
+        goal, ok = QInputDialog.getMultiLineText(
+            None, "What does earning look like?", "Goal:", self.life.goal)
+        if not ok or not goal.strip():
+            return
+        self.life.set_focus(niche.strip(), goal.strip())
+        self.pet.speak("That's the work. I'll plan around it.", 5, "happy", "Focus")
+
+    def _life_plan(self):
+        if self.life is None:
+            return
+        plan = self.life.status()["plan"]
+        lines = [plan["focus"] or "No focus yet.", ""]
+        if not plan["items"]:
+            lines.append("Nothing planned yet. I'll write one on the next beat.")
+        for item in plan["items"]:
+            mark = {"done": "[x]", "failed": "[!]", "todo": "[ ]"}.get(item["status"], "[ ]")
+            lines.append(f"{mark} {item['title']} ({item['skill']})")
+        QMessageBox.information(None, "Today's plan", "\n".join(lines))
+
+    def _life_log(self):
+        if self.life is None:
+            return
+        rows = self.life.memory.recent_activity(12)
+        if not rows:
+            QMessageBox.information(None, "Activity", "Nothing yet.")
+            return
+        lines = [f"{row['created_at'][11:16]}  {row['summary']}" for row in rows]
+        QMessageBox.information(None, "Activity", "\n".join(lines))
+
+    def _life_earnings(self):
+        if self.life is None:
+            return
+        summary = self.life.memory.earnings_summary(8)
+        if not summary["count"]:
+            text = "Nothing logged yet. This ledger is money that already arrived."
+        else:
+            totals = ", ".join(f"{name} {amount:.2f}" for name, amount in summary["by_currency"].items())
+            lines = [totals, ""]
+            for row in summary["recent"]:
+                lines.append(f"{row['amount']:.2f} {row['currency']}  {row['source']}")
+            text = "\n".join(lines)
+        QMessageBox.information(None, "Earnings", text)
+
+    def _life_earn(self):
+        if self.life is None:
+            return
+        source, ok = QInputDialog.getText(None, "Log money in", "Where did it come from?")
+        if not ok or not source.strip():
+            return
+        amount, ok = QInputDialog.getDouble(
+            None, "Log money in", "How much arrived? This does not spend anything.",
+            1.0, 0.01, 1000000, 2)
+        if not ok:
+            return
+        note, ok = QInputDialog.getText(None, "Note", "Optional note:", text="")
+        if not ok:
+            note = ""
+        if self.creator.paused:
+            self.pet.speak("I'm paused, so I didn't write that down.", 4, "info")
+            return
+        src, amt, memo = source.strip(), float(amount), note.strip()
+        threading.Thread(
+            target=lambda: self.life.record_earning(src, amt, memo),
+            name="mushroom-earn", daemon=True,
+        ).start()
+
+    def _life_dashboard(self):
+        if self.life is None:
+            return
+        path = self.life.write_dashboard()
+        backend.open_path(str(path))
+
+
+def _approval_warning(kind: str) -> str:
+    return {
+        "publish_social": "Approving does not publish.",
+        "publish_github": "Approving does not create a repository.",
+        "purchase": "Approving does not spend money or place an order.",
+        "send_message": "Approving does not send the message.",
+    }.get(kind, "Approving does not perform the outside action.")

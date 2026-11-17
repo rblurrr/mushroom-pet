@@ -17,6 +17,12 @@ api_token.txt
 *.log
 inbox/
 
+# model keys. the real ones live in the app-data directory, not the repo
+.env
+*.env
+llm_key.txt
+secrets.json
+
 # source atlases, contact sheets and working strips -- large, and regenerable from
 # the original animation pack. The finished frames under assets/characters/ are what
 # the pet actually loads.

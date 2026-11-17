@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import socket
 import sys
+import threading
 import traceback
 
 from PySide6.QtCore import Qt, QTimer
@@ -13,6 +14,9 @@ from .config import Config, ASSET_DIR, LOG_PATH, APP_DIR
 from .assets import Assets
 from .notify import NotificationCenter
 from .api import Bridge, ApiServer, InboxWatcher
+from .brain import Brain
+from .creator import CreatorEngine
+from .life import Life
 from .pet import PetWindow
 from .menu import MenuFactory, MENU_QSS
 from .platforms import backend
@@ -53,11 +57,20 @@ class MushroomApp:
 
         self.notifier = NotificationCenter(self.cfg)
         self.bridge = Bridge()
+        self.creator = CreatorEngine(os.path.join(APP_DIR, "creator"))
+        self.life = Life(
+            self.creator.root, self.creator,
+            brain=Brain.from_env(self.cfg.data, os.path.join(APP_DIR, "llm.env")),
+            config=self.cfg,
+        )
+        self.bridge.life_provider = lambda: self.life
 
         self.pet = PetWindow(self.cfg, self.assets, self.notifier, self.bridge)
+        self.pet.life = self.life
         self.pet.quit_requested.connect(self.quit)
 
-        self.menus = MenuFactory(self.pet, self.cfg, self.notifier, self.quit)
+        self.menus = MenuFactory(self.pet, self.cfg, self.notifier, self.quit,
+                                 creator=self.creator, life=self.life)
         self.pet.menu_builder = self.menus.build
 
         self._build_tray()
@@ -67,6 +80,11 @@ class MushroomApp:
         self._inbox_timer = QTimer()
         self._inbox_timer.timeout.connect(self.inbox.tick)
         self._inbox_timer.start(900)
+
+        self._life_guard = threading.Lock()
+        self._life_timer = QTimer()
+        self._life_timer.timeout.connect(self._life_beat)
+        self._life_timer.start(15000)
 
         app = QGuiApplication.instance()
         app.screenAdded.connect(lambda *_: self.pet.handle_screens_changed())
@@ -88,6 +106,8 @@ class MushroomApp:
         if len(QGuiApplication.screens()) > 1:
             msg = ("Hi! Move your mouse to another monitor and I'll hop over. "
                    "Triple-click me to go fiery.")
+        if self.life.enabled and not self.creator.paused:
+            msg += " I'll work on a plan in the background, and I'll ask before anything leaves this computer."
         self.pet.speak(msg, 9.5, "happy")
         self.pet.effects.sparkles(self.pet.x, self.pet.y - self.pet.sprite_h * 0.6, 10)
 
@@ -116,6 +136,21 @@ class MushroomApp:
             self.pet._assert_topmost()
             self.pet.come_here()
 
+    def _life_beat(self):
+        """Run a due beat off the UI thread so a slow model can't freeze the pet."""
+        if not self._life_guard.acquire(blocking=False):
+            return
+        threading.Thread(target=self._life_worker, name="mushroom-life", daemon=True).start()
+
+    def _life_worker(self):
+        try:
+            if self.life.due():
+                self.life.tick()
+        except Exception as exc:
+            _log("life beat failed: " + type(exc).__name__)
+        finally:
+            self._life_guard.release()
+
     def _start_api(self):
         self.api = None
         if not self.cfg["api_enabled"]:
@@ -132,6 +167,12 @@ class MushroomApp:
             self.cfg.save()
             if self.api:
                 self.api.stop()
+            self._life_timer.stop()
+            self._life_guard.acquire()
+            try:
+                self.life.close()
+            finally:
+                self._life_guard.release()
             self.pet.release_timer_resolution()
             self.pet.effects.clear()
             self.tray.hide()
