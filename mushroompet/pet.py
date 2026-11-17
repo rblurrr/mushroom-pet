@@ -33,6 +33,7 @@ IDLE, WANDER, DRAG, FALL, HOP, REACT, SLEEP, COME = (
     "idle", "wander", "drag", "fall", "hop", "react", "sleep", "come")
 FIRE_INTRO, FIRE_OUTRO, RAMPAGE = "fire_intro", "fire_outro", "rampage"
 CLIMB, SEEK_WALL = "climb", "seek_wall"
+CURSOR_BOUNCE, CURSOR_HANG, CURSOR_ORBIT = "cursor_bounce", "cursor_hang", "cursor_orbit"
 
 CLIMB_SPEED = 92.0
 LEDGE_MARGIN = 6.0       # how close to a ledge edge he'll walk before deciding
@@ -175,6 +176,9 @@ class PetWindow(QWidget):
         self.drag_prev = None
         self.drag_prev_t = 0.0
         self.click_times: list[float] = []
+        self.cursor_trick_cycles = 0
+        self.cursor_anchor = (0.0, 0.0)
+        self.cursor_phase = 0.0
         self.last_interaction = time.monotonic()
         self.next_chatter = time.monotonic() + random.uniform(20.0, 50.0)
         self._hold_timer = QTimer(self)
@@ -642,6 +646,12 @@ class PetWindow(QWidget):
             return self._step_hop(dt)
         if st == CLIMB:
             return self._step_climb(dt, now)
+        if st == CURSOR_BOUNCE:
+            return self._step_cursor_bounce(dt)
+        if st == CURSOR_HANG:
+            return self._step_cursor_hang(dt)
+        if st == CURSOR_ORBIT:
+            return self._step_cursor_orbit(dt)
 
         if st == SEEK_WALL:
             w = self.wall
@@ -854,6 +864,92 @@ class PetWindow(QWidget):
             self.squash_t = 0.26
             self.effects.land_puff(self.x, self.y, 0.9)
             self.set_state(REACT, 0.8, "happy", restart=True)
+
+    def _cursor_point(self):
+        c = QCursor.pos()
+        return float(c.x()), float(c.y())
+
+    def start_cursor_bounce(self, cycles=3):
+        """Bounce around the live cursor, then fall back to the desktop."""
+        self.wake()
+        self._release_ledge()
+        self.wall = None
+        self.cursor_trick_cycles = max(1, min(6, int(cycles or 3)))
+        self.cursor_anchor = self._cursor_point()
+        self.vx, self.vy = 0.0, -520.0
+        self.set_state(CURSOR_BOUNCE, None, "happy", restart=True)
+        self.effects.sparkles(*self.cursor_anchor, 8)
+
+    def _step_cursor_bounce(self, dt):
+        cx, cy = self._cursor_point()
+        self.cursor_anchor = (cx, cy)
+        self.vy += GRAVITY * 0.72 * dt
+        self.x += ((cx - self.x) * min(1.0, 5.5 * dt)) + self.vx * dt
+        self.y += self.vy * dt
+        self.vx *= max(0.0, 1.0 - 2.4 * dt)
+        contact_y = cy - 10.0
+        if self.vy > 0 and self.y >= contact_y:
+            self.y = contact_y
+            self.cursor_trick_cycles -= 1
+            self.squash_t = 0.20
+            self.effects.sparkles(cx, cy, 5)
+            if self.cursor_trick_cycles <= 0:
+                self.vx = random.uniform(-90.0, 90.0)
+                self.vy = -180.0
+                return self.set_state(FALL, None, "startle", restart=True)
+            self.vy = -random.uniform(430.0, 570.0)
+        self.tilt = max(-12.0, min(12.0, (cx - self.x) * 0.10))
+        self._dirty = True
+
+    def start_cursor_hang(self, seconds=4.0):
+        """Cling below the cursor and swing while it moves."""
+        self.wake()
+        self._release_ledge()
+        self.wall = None
+        self.cursor_phase = 0.0
+        self.cursor_anchor = self._cursor_point()
+        self.set_state(CURSOR_HANG, max(1.0, min(10.0, float(seconds or 4.0))),
+                       "look", restart=True)
+        self.speak("okay, you carry me", min(2.5, self.state_dur), "happy")
+
+    def _step_cursor_hang(self, dt):
+        cx, cy = self._cursor_point()
+        self.cursor_phase += dt * 5.2
+        swing = math.sin(self.cursor_phase) * 24.0 * self.scale
+        tx, ty = cx + swing, cy + self.sprite_h * 0.62
+        self.x += (tx - self.x) * min(1.0, 12.0 * dt)
+        self.y += (ty - self.y) * min(1.0, 12.0 * dt)
+        self.tilt = math.sin(self.cursor_phase) * 18.0
+        self._dirty = True
+        if self.state_t >= self.state_dur:
+            self.vx = math.cos(self.cursor_phase) * 150.0
+            self.vy = 40.0
+            self.set_state(FALL, None, "startle", restart=True)
+
+    def start_cursor_orbit(self, seconds=2.4):
+        """Circle the cursor before dropping back onto the desktop."""
+        self.wake()
+        self._release_ledge()
+        self.wall = None
+        self.cursor_phase = 0.0
+        self.set_state(CURSOR_ORBIT, max(1.2, min(6.0, float(seconds or 2.4))),
+                       "run", restart=True)
+
+    def _step_cursor_orbit(self, dt):
+        cx, cy = self._cursor_point()
+        self.cursor_phase += dt * (math.tau * 0.85)
+        self.x = cx + math.cos(self.cursor_phase) * 82.0 * self.scale
+        self.y = cy + math.sin(self.cursor_phase) * 48.0 * self.scale
+        self.facing = -1 if math.sin(self.cursor_phase) > 0 else 1
+        self.flip = self.facing < 0
+        self.tilt = math.cos(self.cursor_phase) * 16.0
+        if random.random() < 0.12:
+            self.effects.sparkles(self.x, self.y, 1)
+        self._dirty = True
+        if self.state_t >= self.state_dur:
+            self.vx = math.cos(self.cursor_phase) * 210.0
+            self.vy = -120.0
+            self.set_state(FALL, None, "happy", restart=True)
 
     def _step_rampage(self, dt, now):
         """Opt-in menu extra: actually run around. Not what triple-click does."""
@@ -1137,6 +1233,12 @@ class PetWindow(QWidget):
             self.wake()
             self.vy, self.vx = -720.0, 0.0
             self.set_state(FALL, None, "startle", restart=True)
+        elif what == "cursor_bounce":
+            self.start_cursor_bounce(arg if isinstance(arg, (int, float)) else 3)
+        elif what == "cursor_hang":
+            self.start_cursor_hang(arg if isinstance(arg, (int, float)) else 4.0)
+        elif what == "cursor_orbit":
+            self.start_cursor_orbit(arg if isinstance(arg, (int, float)) else 2.4)
         elif what == "hop":
             others = [s for s in QGuiApplication.screens() if s is not self.screen]
             if others:
@@ -1212,6 +1314,8 @@ class PetWindow(QWidget):
             "standing_on": (self.ledge.title[:60] if self.ledge is not None
                             and self.ledge.kind == "window" else "desktop"),
             "climbing": self.wall is not None,
+            "cursor_trick": (self.state if self.state in
+                             (CURSOR_BOUNCE, CURSOR_HANG, CURSOR_ORBIT) else None),
             "ledges": len([l for l in self.scanner.ledges if l.kind == "window"]),
             "size": self.cfg["size"], "speed": self.cfg["speed"],
             "activity": self.cfg["activity"], "muted": self.notifier.muted,

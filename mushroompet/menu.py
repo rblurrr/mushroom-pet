@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QMenu, QFileDialog, QInputDialog, QMessageBox
 
 from . import launchers
 from .config import SIZES, SPEEDS, APP_DIR
+from .creator import CreatorEngine
 from .notify import parse_time_phrase
 from .platforms import backend
 
@@ -33,6 +34,7 @@ class MenuFactory:
         self.cfg = cfg
         self.notifier = notifier
         self.on_quit = on_quit
+        self.creator = CreatorEngine(os.path.join(APP_DIR, "creator"))
 
     def build(self) -> QMenu:
         m = QMenu()
@@ -103,6 +105,14 @@ class MenuFactory:
         m.addAction("Come here").triggered.connect(self.pet.come_here)
         m.addAction("Wave at me").triggered.connect(lambda: self.pet.do_verb("wave"))
         m.addAction("Jump").triggered.connect(lambda: self.pet.do_verb("jump"))
+        tricks = m.addMenu("Cursor tricks")
+        tricks.setStyleSheet(MENU_QSS)
+        tricks.addAction("Bounce on cursor").triggered.connect(
+            lambda: self.pet.do_verb("cursor_bounce"))
+        tricks.addAction("Hang from cursor").triggered.connect(
+            lambda: self.pet.do_verb("cursor_hang"))
+        tricks.addAction("Orbit cursor").triggered.connect(
+            lambda: self.pet.do_verb("cursor_orbit"))
         if len(QGuiApplication.screens()) > 1:
             m.addAction("Hop to other monitor").triggered.connect(
                 lambda: self.pet.do_verb("hop"))
@@ -123,6 +133,17 @@ class MenuFactory:
         else:
             m.addAction("Go to sleep").triggered.connect(lambda: self.pet.do_verb("sleep"))
             m.addAction("Sit still").triggered.connect(lambda: self.pet.do_verb("sit"))
+
+        studio = m.addMenu("Creator Studio")
+        studio.setStyleSheet(MENU_QSS)
+        studio.addAction("Build a project hub…").triggered.connect(self._creator_hub)
+        studio.addAction("Build a playable game…").triggered.connect(self._creator_game)
+        studio.addAction("Draft a social post…").triggered.connect(self._creator_post)
+        pending = self.creator.list_actions("pending_approval")
+        studio.addAction(f"Approval queue ({len(pending)})").triggered.connect(self._creator_queue)
+        studio.addSeparator()
+        studio.addAction("Open creator files").triggered.connect(
+            lambda: backend.open_path(str(self.creator.root)))
 
         fire = m.addMenu("Fire mode")
         fire.setStyleSheet(MENU_QSS)
@@ -567,3 +588,53 @@ class MenuFactory:
         ok, info = launchers.remove_autostart()
         self.pet.speak("Autostart removed." if ok else f"Couldn't remove it ({info})",
                        5, "info" if ok else "urgent")
+
+    # ---- creator studio ----
+    def _creator_hub(self):
+        title, ok = QInputDialog.getText(None, "Build a project hub", "Project name:")
+        if not ok or not title.strip():
+            return
+        brief, ok = QInputDialog.getMultiLineText(None, "Project brief", "What should it do?")
+        if not ok:
+            return
+        action = self.creator.submit("create_hub", {"title": title, "brief": brief})
+        backend.open_path(action["result"]["preview"])
+        self.pet.speak("I built the hub locally and opened its preview.", 6, "happy")
+
+    def _creator_game(self):
+        title, ok = QInputDialog.getText(None, "Build a playable game", "Game name:")
+        if not ok or not title.strip():
+            return
+        brief, ok = QInputDialog.getMultiLineText(None, "Game brief", "What is the game about?")
+        if not ok:
+            return
+        action = self.creator.submit("create_game", {"title": title, "brief": brief})
+        backend.open_path(action["result"]["preview"])
+        self.pet.speak("I built a playable local game and opened it.", 6, "happy")
+
+    def _creator_post(self):
+        text, ok = QInputDialog.getMultiLineText(None, "Draft a social post", "Post text:")
+        if not ok or not text.strip():
+            return
+        platform, ok = QInputDialog.getItem(
+            None, "Platform", "Draft for:", ["x", "instagram", "tiktok", "facebook", "other"], 0, False)
+        if not ok:
+            return
+        action = self.creator.submit("draft_social", {"platform": platform, "text": text})
+        self.pet.speak("Draft saved locally. I will not publish without approval.", 6, "happy")
+        backend.open_path(action["result"]["path"])
+
+    def _creator_queue(self):
+        pending = self.creator.list_actions("pending_approval")
+        if not pending:
+            QMessageBox.information(None, "Approval queue", "Nothing is waiting for approval.")
+            return
+        rows = []
+        for action in pending[:20]:
+            summary = action["payload"].get("item") or action["payload"].get("text") \
+                or action["payload"].get("repository_name") or "request"
+            rows.append(f'{action["id"]}  |  {action["kind"]}  |  {str(summary)[:70]}')
+        QMessageBox.information(
+            None, "Approval queue",
+            "These requests are NOT executed. Review/approve them with the Creator Studio CLI.\n\n"
+            + "\n".join(rows))

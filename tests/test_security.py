@@ -5,12 +5,18 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from mushroompet.api import ApiServer, Bridge
+from mushroompet.api import ApiServer, Bridge, normalise
 from mushroompet import launchers
 from mushroompet.platforms.macos import MacBackend
 
 
 class SecurityTests(unittest.TestCase):
+    def test_cursor_tricks_are_validated_api_verbs(self):
+        for verb in ("cursor_bounce", "cursor_hang", "cursor_orbit"):
+            cmd = normalise({"action": "do", "what": verb})
+            self.assertEqual(cmd["what"], verb)
+        self.assertIsNone(normalise({"action": "do", "what": "cursor_teleport"}))
+
     def test_api_auth_and_query_token_rejected(self):
         server = ApiServer(Bridge(), 0, "secret")
         self.assertTrue(server.start())

@@ -50,6 +50,7 @@ LaunchAgent on macOS.
 | **Triple click** | Fire costume for 30 s: a short roar, then he carries on as normal but flaming. He does *not* run around |
 | **Right click** | The menu |
 | **Middle click** | Runs to your cursor |
+| **Right click → Cursor tricks** | Bounce on the cursor, hang beneath it while it moves, or orbit around it |
 | **Scroll wheel on him** | Resize, tiny → huge |
 | **Mouse to another monitor** | After ~0.6 s he crouches and leaps across, landing near your cursor |
 | **Leave him alone** | Idles, sits, eats, fishes, wanders a little, drops the occasional one-liner, eventually sleeps |
@@ -134,13 +135,41 @@ send("reminder_add", {"text": "stand up", "in_minutes": 45})
 Routes: `POST /say`, `/notify`, `/do`, `/reminder_add` · `GET /state`, `/health`.
 Bubble moods: `normal`, `happy`, `urgent`, `fire`, `sleepy`, `info`.
 `do` verbs: `react`, `wave`, `happy`, `love`, `look`, `sit`, `sleep`, `wake`, `come`,
-`jump`, `hop`, `climb`, `getdown`, `rampage`, `fire_on`, `fire_off`, `hide`, `show`, `quit`.
+`jump`, `hop`, `climb`, `getdown`, `cursor_bounce`, `cursor_hang`, `cursor_orbit`,
+`rampage`, `fire_on`, `fire_off`, `hide`, `show`, `quit`.
 
 **No-network alternative:** drop a JSON file into the `inbox` folder inside your config
 directory, e.g. `{"action": "say", "text": "hello"}`. It's executed within a second and
 deleted. Works whether or not the HTTP server is enabled.
 
 **Privacy and trust:** window titles and geometry are read locally into memory only; they are not transmitted and there is no telemetry. The API is loopback-only and `/health` is intentionally unauthenticated; every other route requires the generated token via `X-Token` or `Authorization: Bearer <token>`. Anyone who can read the inbox or obtain the token can send commands. Terminal commands, configured launchers, and app entries execute locally; only add trusted commands and applications.
+
+## Creator Studio (safe autonomy)
+
+Mushroom now has a persistent creator core that can remember things, track goals, build
+local project hubs and playable HTML games, draft social content, and prepare requests for
+GitHub publication or real-world purchases. Local creation runs immediately; publishing,
+messages, repositories, orders, and spending are always held for owner approval.
+Approval does **not** perform the external action—the connector that eventually publishes
+or checks out must separately consume an approved record, so this module never stores a
+social token, GitHub credential, shipping address, or payment method.
+
+```bash
+python tools/mushroom_creator.py hub "My project" --brief "A local project hub"
+python tools/mushroom_creator.py game "Spore Sprint" --brief "Collect golden spores"
+python tools/mushroom_creator.py post-draft "I made a game" --platform x
+python tools/mushroom_creator.py post-request "Ready to publish" --platform x
+python tools/mushroom_creator.py github-request PATH REPO --visibility private
+python tools/mushroom_creator.py purchase-request ITEM VENDOR URL 24.99 --reason "Why"
+python tools/mushroom_creator.py list --status pending_approval
+python tools/mushroom_creator.py approve ACTION_ID --note "Owner reviewed"
+python tools/mushroom_creator.py pause       # emergency stop
+python tools/mushroom_creator.py verify      # verify the hash-chained audit ledger
+```
+
+Data lives under the normal app data directory in `creator/`: persistent mind state,
+actions, local workspaces, drafts, and an append-only hash-chained audit ledger. Generated
+artifacts are previews only and never receive shell access or automatic network access.
 
 ## Where settings live
 

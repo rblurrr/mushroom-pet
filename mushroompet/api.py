@@ -22,7 +22,8 @@ ACTIONS = ("say", "notify", "do", "reminder_add", "reminder_list", "reminder_cle
            "state", "config", "health")
 
 DO_VERBS = ("react", "wave", "happy", "love", "sit", "sleep", "wake", "come", "jump",
-            "hop", "climb", "getdown", "rampage", "fire_on", "fire_off",
+            "hop", "climb", "getdown", "cursor_bounce", "cursor_hang", "cursor_orbit",
+            "rampage", "fire_on", "fire_off",
             "hide", "show", "quit", "look")
 
 
