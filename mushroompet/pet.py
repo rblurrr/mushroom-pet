@@ -125,6 +125,7 @@ class PetWindow(QWidget):
         self.notifier = notifier
         self.bridge = bridge
         self.bridge.state_provider = self.state_snapshot
+        self.life = None                      # set by app.py when the autonomous loop is wired
         self.effects = EffectManager(self)
         self.bubble = Bubble()
         self.menu_builder = None          # set by app.py
@@ -600,6 +601,7 @@ class PetWindow(QWidget):
         self._pump_bridge()
         self.notifier.tick()
         self._maybe_speak_notification()
+        self._drain_life()
         was_bubble = self.bubble.visible
         if self.bubble.needs_repaint():
             self._dirty = True
@@ -1073,9 +1075,19 @@ class PetWindow(QWidget):
         if self.bubble.visible or now < self.next_chatter:
             return
         self.next_chatter = now + random.uniform(lo, hi)
-        pool = FIRE_LINES if self.fire else IDLE_LINES
-        self.bubble.show(random.choice(pool), random.uniform(4.5, 7.0),
-                         "fire" if self.fire else "normal")
+        line = None
+        life = getattr(self, "life", None)
+        if life is not None and not self.fire and random.random() < 0.45:
+            try:
+                line = life.chatter_line()
+            except Exception:
+                line = None
+        if line:
+            self.bubble.show(line, random.uniform(4.5, 7.0), "info")
+        else:
+            pool = FIRE_LINES if self.fire else IDLE_LINES
+            self.bubble.show(random.choice(pool), random.uniform(4.5, 7.0),
+                             "fire" if self.fire else "normal")
         self._dirty = True
 
     # ==================================================== fire costume
@@ -1142,6 +1154,31 @@ class PetWindow(QWidget):
             self.wake()
         self._dirty = True
         self._refresh_mask(force=True)
+
+    def _drain_life(self):
+        """Show one beat of the autonomous life, once the pet is free to talk."""
+        life = getattr(self, "life", None)
+        if life is None or self.bubble.active:
+            return
+        if self.state not in (IDLE, SLEEP, REACT):
+            return
+        try:
+            moment = life.poll_moment()
+        except Exception:
+            return
+        if not moment:
+            return
+        verb = moment.get("verb")
+        try:
+            if self.state == SLEEP:
+                self.wake()
+            elif verb in ("look", "happy", "wave", "love", "sit"):
+                self.do_verb(verb)
+        except Exception:
+            pass
+        self.speak(moment.get("text", ""), moment.get("seconds"),
+                   moment.get("bubble") or moment.get("mood") or "info",
+                   moment.get("title", ""))
 
     def _maybe_speak_notification(self):
         if self.bubble.active or self.state in (DRAG, HOP, FALL, FIRE_INTRO):
@@ -1304,7 +1341,7 @@ class PetWindow(QWidget):
         self.set_state(COME, None, "run")
 
     def state_snapshot(self):
-        return {
+        snap = {
             "state": self.state, "anim": self.anim_name, "pose": self.logical_anim,
             "fire": self.fire, "x": round(self.x, 1), "y": round(self.y, 1),
             "screen": self.screen.name() if self.screen else None,
@@ -1323,6 +1360,13 @@ class PetWindow(QWidget):
                           for r in self.notifier.pending()],
             "pomodoro": self.notifier.pomodoro_status(),
         }
+        life = getattr(self, "life", None)
+        if life is not None:
+            try:
+                snap["life"] = life.status()
+            except Exception:
+                snap["life"] = {"error": "unavailable"}
+        return snap
 
     # ==================================================== hit testing
     def _opaque_at(self, gx, gy) -> bool:

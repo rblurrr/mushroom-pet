@@ -14,7 +14,10 @@ import hmac
 import json, os, queue, threading, time, glob
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from urllib.parse import parse_qs
+
 from .config import INBOX_DIR
+from .life import LIFE_ACTIONS, LifeError, handle_request
 
 MAX_BODY = 64 * 1024
 
@@ -26,6 +29,28 @@ DO_VERBS = ("react", "wave", "happy", "love", "sit", "sleep", "wake", "come", "j
             "rampage", "fire_on", "fire_off",
             "hide", "show", "quit", "look")
 
+_GET_LIFE = {
+    "/life": "life_status",
+    "/life/log": "life_log",
+    "/life/plan": "life_plan",
+    "/life/earnings": "life_earnings",
+    "/life/opportunities": "life_opportunities",
+    "/life/memory": "life_memory",
+    "/life/skills": "life_skills",
+    "/approvals": "approvals",
+}
+_POST_LIFE = {
+    "/life/tick": "life_tick",
+    "/life/skill": "life_skill",
+    "/life/focus": "life_focus",
+    "/life/enabled": "life_enabled",
+    "/life/pause": "life_pause",
+    "/approve": "approve",
+    "/reject": "reject",
+    "/remember": "remember",
+    "/earning": "earning",
+}
+
 
 class Bridge:
     """Thread-safe command inbox drained by the pet each tick."""
@@ -33,6 +58,7 @@ class Bridge:
     def __init__(self):
         self.q: queue.Queue = queue.Queue(maxsize=256)
         self.state_provider = lambda: {}
+        self.life_provider = lambda: None
 
     def submit(self, cmd: dict):
         try:
@@ -55,6 +81,15 @@ class Bridge:
             return self.state_provider()
         except Exception as e:                      # pragma: no cover - defensive
             return {"error": str(e)}
+
+
+def _query_payload(query: str) -> dict:
+    parsed = parse_qs(query or "", keep_blank_values=False)
+    payload = {}
+    for key in ("q", "query", "limit", "status"):
+        if key in parsed and parsed[key]:
+            payload[key] = parsed[key][-1][:200]
+    return payload
 
 
 def normalise(payload: dict, default_action=None) -> dict | None:
@@ -144,7 +179,8 @@ class _Handler(BaseHTTPRequestHandler):
 
     # ---- routes ----
     def do_GET(self):
-        route = (self.path.split("?")[0] or "/").rstrip("/") or "/"
+        path, _, query = self.path.partition("?")
+        route = (path or "/").rstrip("/") or "/"
         if route in ("/", "/health"):
             return self._json(200, {"ok": True, "app": "mushroom-pet", "ts": time.time()})
         if not self._authed():
@@ -154,19 +190,41 @@ class _Handler(BaseHTTPRequestHandler):
         if route == "/reminders":
             self.bridge.submit({"action": "reminder_list"})
             return self._json(200, {"ok": True, "state": self.bridge.state()})
+        action = _GET_LIFE.get(route)
+        if action:
+            return self._life_call(action, _query_payload(query))
         return self._json(404, {"ok": False, "error": "unknown route"})
 
     def do_POST(self):
         if not self._authed():
             return self._json(401, {"ok": False, "error": "bad token"})
-        route = (self.path.split("?")[0] or "/").strip("/").lower()
+        path = (self.path.split("?")[0] or "/").rstrip("/") or "/"
         payload = self._read()
+        action = _POST_LIFE.get(path)
+        if action:
+            return self._life_call(action, payload if isinstance(payload, dict) else {})
+        route = path.strip("/").lower()
         cmd = normalise(payload, default_action=route if route in ACTIONS else None)
         if cmd is None:
             return self._json(400, {"ok": False, "error": "bad command",
                                     "actions": list(ACTIONS), "verbs": list(DO_VERBS)})
         ok = self.bridge.submit(cmd)
         return self._json(200 if ok else 503, {"ok": ok})
+
+    def _life_call(self, action, payload):
+        try:
+            life = self.bridge.life_provider()
+        except Exception:
+            life = None
+        if life is None:
+            return self._json(404, {"ok": False, "error": "life is not running"})
+        try:
+            body = handle_request(life, action, payload)
+        except LifeError as exc:
+            return self._json(exc.status, {"ok": False, "error": exc.message})
+        except Exception:
+            return self._json(500, {"ok": False, "error": "life request failed"})
+        return self._json(200, body)
 
     def do_OPTIONS(self):
         self.send_response(204)
@@ -225,13 +283,24 @@ class InboxWatcher:
                     payload = json.load(fh)
             except (OSError, ValueError):
                 payload = None
-            if isinstance(payload, list):
-                for item in payload[:20]:
-                    cmd = normalise(item)
-                    if cmd:
-                        self.bridge.submit(cmd)
-            elif isinstance(payload, dict):
-                cmd = normalise(payload)
+            items = payload if isinstance(payload, list) else [payload]
+            for item in items[:20]:
+                if not isinstance(item, dict):
+                    continue
+                action = str(item.get("action") or "").strip().lower()
+                life = None
+                if action in LIFE_ACTIONS:
+                    try:
+                        life = self.bridge.life_provider()
+                    except Exception:
+                        life = None
+                if life is not None and action in LIFE_ACTIONS:
+                    try:
+                        handle_request(life, action, item)
+                    except Exception:
+                        pass
+                    continue
+                cmd = normalise(item)
                 if cmd:
                     self.bridge.submit(cmd)
             try:

@@ -13,14 +13,18 @@ import os
 import re
 import secrets
 import tempfile
+import threading
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 
-LOCAL_ACTIONS = {"create_hub", "create_game", "draft_social"}
-EXTERNAL_ACTIONS = {"publish_social", "publish_github", "purchase"}
+LOCAL_ACTIONS = {
+    "create_hub", "create_game", "draft_social",
+    "draft_ideas", "draft_script", "draft_caption", "draft_listing",
+}
+EXTERNAL_ACTIONS = {"publish_social", "publish_github", "purchase", "send_message"}
 ALL_ACTIONS = LOCAL_ACTIONS | EXTERNAL_ACTIONS
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
@@ -77,8 +81,13 @@ class AuditLedger:
     def __init__(self, path: Path):
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
 
     def append(self, event: str, detail: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            return self._append(event, detail)
+
+    def _append(self, event: str, detail: dict[str, Any]) -> dict[str, Any]:
         previous = self._last_hash()
         body = {"time": _now(), "event": event, "detail": detail, "previous": previous}
         canonical = json.dumps(body, sort_keys=True, separators=(",", ":"))
@@ -100,6 +109,10 @@ class AuditLedger:
         return str(json.loads(last)["hash"])
 
     def verify(self) -> tuple[bool, int]:
+        with self._lock:
+            return self._verify()
+
+    def _verify(self) -> tuple[bool, int]:
         previous = "GENESIS"
         count = 0
         if not self.path.exists():
@@ -168,6 +181,7 @@ class CreatorEngine:
     """Typed action queue plus local builders and external approval gates."""
 
     def __init__(self, root: str | Path):
+        self._lock = threading.RLock()
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self.actions_path = self.root / "actions.json"
@@ -182,6 +196,10 @@ class CreatorEngine:
         return self.kill_path.exists()
 
     def set_paused(self, paused: bool, actor: str = "owner") -> None:
+        with self._lock:
+            self._set_paused(paused, actor)
+
+    def _set_paused(self, paused: bool, actor: str = "owner") -> None:
         if paused:
             self.kill_path.write_text(f"paused by {actor} at {_now()}\n", encoding="utf-8")
         else:
@@ -189,10 +207,15 @@ class CreatorEngine:
         self.ledger.append("kill_switch", {"paused": paused, "actor": actor})
 
     def list_actions(self, status: str | None = None) -> list[dict[str, Any]]:
-        actions = self._load_actions()
+        with self._lock:
+            actions = self._load_actions()
         return [a for a in actions if status is None or a["status"] == status]
 
     def submit(self, kind: str, payload: dict[str, Any], actor: str = "mushroom") -> dict[str, Any]:
+        with self._lock:
+            return self._submit(kind, payload, actor)
+
+    def _submit(self, kind: str, payload: dict[str, Any], actor: str = "mushroom") -> dict[str, Any]:
         if self.paused:
             raise RuntimeError("creator is paused by the owner kill switch")
         if kind not in ALL_ACTIONS:
@@ -216,6 +239,10 @@ class CreatorEngine:
         return asdict(record)
 
     def approve(self, action_id: str, note: str = "", actor: str = "owner") -> dict[str, Any]:
+        with self._lock:
+            return self._approve(action_id, note, actor)
+
+    def _approve(self, action_id: str, note: str = "", actor: str = "owner") -> dict[str, Any]:
         record = self._find(action_id)
         if record["status"] != "pending_approval":
             raise ValueError("only pending actions can be approved")
@@ -224,6 +251,10 @@ class CreatorEngine:
                                 event_actor=actor)
 
     def reject(self, action_id: str, note: str, actor: str = "owner") -> dict[str, Any]:
+        with self._lock:
+            return self._reject(action_id, note, actor)
+
+    def _reject(self, action_id: str, note: str, actor: str = "owner") -> dict[str, Any]:
         record = self._find(action_id)
         if record["status"] != "pending_approval":
             raise ValueError("only pending actions can be rejected")
@@ -280,12 +311,25 @@ class CreatorEngine:
             if platform not in {"general", "x", "instagram", "tiktok", "facebook", "linkedin"}:
                 raise ValueError("unsupported social platform")
             return {"platform": platform, "text": _clean_text(payload.get("text"), 4000)}
+        if kind in {"draft_ideas", "draft_script", "draft_caption", "draft_listing"}:
+            return {"title": _clean_text(payload.get("title"), 160),
+                    "text": _clean_text(payload.get("text"), 8000)}
+        if kind == "send_message":
+            channel = _clean_text(payload.get("channel", "other"), 40).lower()
+            if channel not in {"email", "dm", "sms", "other"}:
+                raise ValueError("unsupported message channel")
+            return {"channel": channel,
+                    "recipient": _clean_text(payload.get("recipient"), 200),
+                    "text": _clean_text(payload.get("text"), 4000)}
         if kind == "publish_github":
             return {"project_path": _clean_text(payload.get("project_path"), 500),
                     "repository_name": _slug(_clean_text(payload.get("repository_name"), 120)),
                     "visibility": "private" if payload.get("visibility") != "public" else "public"}
         if kind == "purchase":
-            price = float(payload.get("price", -1))
+            try:
+                price = float(payload.get("price", -1))
+            except (TypeError, ValueError):
+                raise ValueError("price must be between 0 and 100000") from None
             if price < 0 or price > 100000:
                 raise ValueError("price must be between 0 and 100000")
             return {"item": _clean_text(payload.get("item"), 300),
@@ -300,13 +344,22 @@ class CreatorEngine:
             return self._build_hub(payload, action_id)
         if kind == "create_game":
             return self._build_game(payload, action_id)
-        if kind == "draft_social":
-            self.drafts.mkdir(parents=True, exist_ok=True)
-            path = self.drafts / f"{action_id}-{payload['platform']}.md"
-            path.write_text(f"# Social draft — {payload['platform']}\n\n{payload['text']}\n",
-                            encoding="utf-8")
-            return {"path": str(path), "external_side_effect": False}
+        if kind in {"draft_social", "draft_ideas", "draft_script", "draft_caption", "draft_listing"}:
+            return self._write_draft(kind, payload, action_id)
         raise ValueError(kind)
+
+    def _write_draft(self, kind: str, payload: dict[str, Any], action_id: str) -> dict[str, Any]:
+        self.drafts.mkdir(parents=True, exist_ok=True)
+        if kind == "draft_social":
+            name = f"{action_id}-{payload['platform']}.md"
+            body = f"# Social draft — {payload['platform']}\n\n{payload['text']}\n"
+        else:
+            slug = kind.replace("draft_", "")
+            name = f"{action_id}-{slug}.md"
+            body = f"# {payload['title']}\n\n{payload['text']}\n"
+        path = self.drafts / name
+        path.write_text(body, encoding="utf-8")
+        return {"path": str(path), "external_side_effect": False}
 
     def _workspace(self, title: str, action_id: str) -> Path:
         path = self.workspaces / f"{_slug(title)}-{action_id[:6]}"

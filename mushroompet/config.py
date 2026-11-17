@@ -111,6 +111,15 @@ DEFAULTS = {
     "api_port": 7477,
     "api_token": "",
 
+    # autonomous life. The key for a model stays in the environment or in
+    # llm.env inside this config directory; it is not a config field.
+    "life_enabled": True,
+    "life_interval_s": 900,
+    "life_niche": "",
+    "life_goal": "",
+    "llm_base_url": "",
+    "llm_model": "",
+
     # your own menu entries, e.g.
     #   {"label": "Notes", "target": "C:/notes.exe", "args": "", "kind": "app"}
     #   {"label": "Docs",  "target": "https://example.com", "kind": "url"}
