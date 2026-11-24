@@ -38,6 +38,52 @@ Or double-click a launcher, which installs the dependency for you on first run:
 Quartz lets him read your open windows so he can walk on and climb them; Cocoa hides his
 Dock tile. Without them everything else still works — he just stays on the screen edge.
 
+## Sparky's World
+
+Sparky is an AI character, drawn as a plug, who lives in Off-Peak, an imagined town. The
+Electrician is R. The town is a browser page on top of the same autonomy brain as the
+desktop pet: the 15-minute loop, the approval queue, the hash-chained ledger, and the
+optional model. It does not keep a second copy of that machinery.
+
+From the repo:
+
+```bash
+python -m sparky
+```
+
+Then open http://127.0.0.1:8765 . One process serves the page and the API. It binds to
+`127.0.0.1` unless `SPARKY_HOST` is set. `SPARKY_PORT` changes the port (default `8765`).
+
+No model key is required. With nothing configured he still walks, writes the Line Log,
+and refuses the things he is supposed to refuse. To let him phrase lines through an
+OpenAI-compatible server, use the same variables as the desktop pet:
+
+```bash
+MUSHROOM_LLM_BASE_URL=http://127.0.0.1:11434/v1 \
+MUSHROOM_LLM_MODEL=llama3.2 \
+python -m sparky
+```
+
+A failed or missing model call falls back to the scripted voice. The key is not written
+into the Line Log.
+
+Weather is real only when you set `SPARKY_LAT` and `SPARKY_LON` (Open-Meteo, no key).
+A grid number is read only from `SPARKY_GRID_URL`. If either feed is missing or down,
+he says he has not checked. He does not invent the reading.
+
+State lives in `SPARKY_HOME`, or else beside the desktop pet's settings
+(`~/.config/mushroompet/sparky` on Linux). The Electrician's token is
+`owner_token.txt` in that folder. Owner mode in the page asks for that token.
+Saying "I am the Electrician" in the Outlet does not open it.
+
+The camera button asks before it connects. Frames stay in the browser. A short text
+description can be sent to him. Nothing is stored unless you tick remember. The green
+pill is the on/off indicator. "Step through" puts the camera behind him as an overlay.
+
+```bash
+python -m unittest discover -s tests -v
+```
+
 Menu → *Start with my computer → Enable* registers a Startup shortcut on Windows or a
 LaunchAgent on macOS.
 
