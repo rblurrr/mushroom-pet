@@ -1,18 +1,33 @@
 """Sparky's world: needs, safety, the approval queue, and the local API."""
 import json
+import os
+import socket
 import tempfile
 import unittest
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from io import StringIO
 from pathlib import Path
+from contextlib import redirect_stderr, redirect_stdout
+from unittest.mock import Mock, patch
+
+from http.server import HTTPServer
 
 from mushroompet.brain import Brain, BrainConfig
 from mushroompet.life import LifeError
 
 from sparky.engine import SparkyEngine, charge_of, split_cents
 from sparky.safety import OUTLET_LINE
-from sparky.server import SparkyServer
+from sparky.server import (
+    ExclusiveHTTPServer,
+    PortInUse,
+    SparkyServer,
+    configure_listen_socket,
+    main,
+    resolve_listen,
+    startup_lines,
+)
 
 
 class Clock:
@@ -457,6 +472,76 @@ class ApiTests(SparkyCase):
         self.assertEqual(earned["ground_cents"], 150)
         status, missing = call("POST", "/api/owner/approve", {"id": "nope", "note": "no"}, token=engine.owner_token)
         self.assertEqual(status, 404)
+
+
+class PortTests(SparkyCase):
+    def _hold_port(self):
+        held = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        held.bind(("127.0.0.1", 0))
+        held.listen(1)
+        self.addCleanup(held.close)
+        return held.getsockname()[1]
+
+    def test_listen_socket_does_not_reuse_the_address(self):
+        self.assertTrue(HTTPServer.allow_reuse_address)
+        self.assertFalse(ExclusiveHTTPServer.allow_reuse_address)
+
+    def test_windows_bind_is_exclusive(self):
+        sock = Mock()
+        with patch("sparky.server.os.name", "nt"), patch(
+            "sparky.server.socket.SO_EXCLUSIVEADDRUSE", 101, create=True,
+        ):
+            configure_listen_socket(sock)
+        sock.setsockopt.assert_called_once_with(socket.SOL_SOCKET, 101, 1)
+
+    def test_taken_port_is_not_shared(self):
+        engine = self.make()
+        occupied = self._hold_port()
+        with self.assertRaises(PortInUse) as caught:
+            SparkyServer(engine, "127.0.0.1", occupied, search=False)
+        message = str(caught.exception)
+        self.assertIn("SPARKY_PORT", message)
+        self.assertIn(str(occupied), message)
+        server = SparkyServer(engine, "127.0.0.1", occupied, search=True)
+        self.addCleanup(server.close)
+        self.assertNotEqual(server.port, occupied)
+        lines = startup_lines("127.0.0.1", occupied, server.port)
+        self.assertIn(f"http://127.0.0.1:{server.port}", lines[-1])
+        self.assertNotIn(f"http://127.0.0.1:{occupied}", lines[-1])
+        self.assertIn("SPARKY_PORT", lines[0])
+        server.start_background()
+        with urllib.request.urlopen(f"http://127.0.0.1:{server.port}/api/health") as response:
+            body = json.loads(response.read().decode())
+        self.assertEqual(body["service"], "sparky")
+
+    def test_port_flag_overrides_the_environment(self):
+        with patch.dict(os.environ, {"SPARKY_PORT": "9000", "SPARKY_HOST": "127.0.0.1"}):
+            host, port, explicit = resolve_listen(["--port", "9001"])
+        self.assertEqual((host, port, explicit), ("127.0.0.1", 9001, True))
+        with patch.dict(os.environ, {"SPARKY_PORT": "9000"}, clear=False):
+            os.environ.pop("SPARKY_HOST", None)
+            _host, port, explicit = resolve_listen([])
+        self.assertEqual(port, 9000)
+        self.assertTrue(explicit)
+
+    def test_explicit_taken_port_does_not_announce_a_url(self):
+        engine_root = self.root / "cli-home"
+        occupied = self._hold_port()
+        stdout, stderr = StringIO(), StringIO()
+        env = {
+            "SPARKY_HOME": str(engine_root),
+            "SPARKY_PORT": str(occupied),
+        }
+        env.pop("SPARKY_HOST", None)
+        with patch.dict(os.environ, env, clear=False):
+            os.environ.pop("SPARKY_HOST", None)
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                with self.assertRaises(SystemExit) as caught:
+                    main([])
+        self.assertEqual(caught.exception.code, 1)
+        self.assertIn("SPARKY_PORT", stderr.getvalue())
+        self.assertIn(str(occupied), stderr.getvalue())
+        self.assertNotIn("Sparky is awake", stdout.getvalue())
 
 
 class LifeStillRejectsFakeIncome(unittest.TestCase):

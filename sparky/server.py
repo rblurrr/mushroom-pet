@@ -1,9 +1,14 @@
 """Local HTTP server for Sparky's World. Loopback by default."""
 from __future__ import annotations
 
+import argparse
+import errno
 import json
 import mimetypes
+import os
 import secrets
+import socket
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -15,6 +20,114 @@ from .safety import clip
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
 MAX_BODY = 64 * 1024
 MAX_PHOTO_BODY = 400_000
+DEFAULT_PORT = 8765
+# How many ports to try when the default is already taken.
+_PORT_SEARCH = 20
+
+
+class PortInUse(RuntimeError):
+    """The requested port already has a listener. Sparky did not bind it."""
+
+    def __init__(self, port: int):
+        self.port = int(port)
+        super().__init__(
+            f"Port {self.port} is already in use. Sparky did not start there. "
+            f"Pass --port PORT or set SPARKY_PORT to a free port."
+        )
+
+
+def configure_listen_socket(sock: socket.socket) -> None:
+    """Keep this listen socket from sharing its port.
+
+    ``HTTPServer`` sets ``SO_REUSEADDR``. On Windows that flag lets a second
+    process bind the same address, so a browser can reach the other server
+    while Sparky still prints this port. ``SO_EXCLUSIVEADDRUSE`` is the
+    Windows option that refuses the second bind.
+    """
+    if os.name != "nt":
+        return
+    exclusive = getattr(socket, "SO_EXCLUSIVEADDRUSE", None)
+    if exclusive is None:
+        return
+    sock.setsockopt(socket.SOL_SOCKET, exclusive, 1)
+
+
+class ExclusiveHTTPServer(ThreadingHTTPServer):
+    # HTTPServer turns reuse on. Leave it off so a taken port fails the bind.
+    allow_reuse_address = False
+
+    def server_bind(self) -> None:
+        configure_listen_socket(self.socket)
+        super().server_bind()
+
+
+def _address_in_use(exc: OSError) -> bool:
+    if getattr(exc, "winerror", None) == 10048:
+        return True
+    err = exc.errno
+    return err in {errno.EADDRINUSE, 10048}
+
+
+def _candidates(port: int, search: bool) -> list[int]:
+    if not search or port == 0:
+        return [port]
+    last = min(port + _PORT_SEARCH, 65536)
+    return list(range(port, last))
+
+
+def listen(host: str, port: int, *, search: bool = False) -> ExclusiveHTTPServer:
+    """Bind a server. ``search`` walks forward when ``port`` is taken."""
+    last_error: OSError | None = None
+    for candidate in _candidates(port, search):
+        try:
+            return ExclusiveHTTPServer((host, candidate), SparkyHandler)
+        except OSError as exc:
+            if not _address_in_use(exc):
+                raise
+            last_error = exc
+            if not search:
+                raise PortInUse(port) from exc
+    raise PortInUse(port) from last_error
+
+
+def resolve_listen(argv: list[str] | None = None) -> tuple[str, int, bool]:
+    """Host, port, and whether the port was chosen explicitly.
+
+    ``--port`` wins over ``SPARKY_PORT``. An explicit port that is taken is an
+    error. The default port may move to the next free one.
+    """
+    parser = argparse.ArgumentParser(prog="python -m sparky")
+    parser.add_argument("--host", default=None, help="Bind address. Default 127.0.0.1 or SPARKY_HOST.")
+    parser.add_argument("--port", type=int, default=None, help="Listen port. Overrides SPARKY_PORT.")
+    args = parser.parse_args(argv)
+    host = args.host or os.environ.get("SPARKY_HOST") or "127.0.0.1"
+    explicit = args.port is not None or bool(os.environ.get("SPARKY_PORT"))
+    if args.port is not None:
+        port = args.port
+    else:
+        raw = os.environ.get("SPARKY_PORT") or ""
+        if not raw:
+            port = DEFAULT_PORT
+        else:
+            try:
+                port = int(raw)
+            except ValueError:
+                raise SystemExit(f"SPARKY_PORT must be a port number, not {raw!r}.") from None
+    if not 0 <= port <= 65535:
+        raise SystemExit(f"Port {port} is outside 0–65535. Pass --port or set SPARKY_PORT.")
+    return host, port, explicit
+
+
+def startup_lines(host: str, requested: int, bound: int) -> list[str]:
+    """Text for the terminal. The URL is the port that actually accepted the bind."""
+    lines = []
+    if requested not in {0, bound}:
+        lines.append(
+            f"Port {requested} is already in use. Sparky is listening on {bound}. "
+            f"Pass --port or set SPARKY_PORT to choose a port."
+        )
+    lines.append(f"Sparky is awake at http://{host}:{bound}")
+    return lines
 
 _OPEN = {"/", "/index.html", "/api/state", "/api/health"}
 
@@ -298,9 +411,11 @@ def _store_photo(root: Path, data_url: str) -> str:
 
 
 class SparkyServer:
-    def __init__(self, engine: SparkyEngine, host: str = "127.0.0.1", port: int = 8765):
+    def __init__(self, engine: SparkyEngine, host: str = "127.0.0.1", port: int = DEFAULT_PORT,
+                 *, search: bool = False):
         self.engine = engine
-        self.httpd = ThreadingHTTPServer((host, port), SparkyHandler)
+        self.requested_port = int(port)
+        self.httpd = listen(host, self.requested_port, search=search)
         self.httpd.engine = engine
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -332,15 +447,19 @@ class SparkyServer:
         self.httpd.server_close()
 
 
-def main() -> None:
-    import os
+def main(argv: list[str] | None = None) -> None:
+    host, port, explicit = resolve_listen(argv)
     home = default_home()
     engine = SparkyEngine(home)
-    host = os.environ.get("SPARKY_HOST", "127.0.0.1")
-    port = int(os.environ.get("SPARKY_PORT", "8765"))
-    server = SparkyServer(engine, host, port)
+    try:
+        server = SparkyServer(engine, host, port, search=not explicit)
+    except PortInUse as exc:
+        print(str(exc), file=sys.stderr)
+        engine.close()
+        raise SystemExit(1) from exc
     token_path = home / "owner_token.txt"
-    print(f"Sparky is awake at http://{host}:{server.port}")
+    for line in startup_lines(host, port, server.port):
+        print(line)
     print(f"Owner token file: {token_path}")
     print("No model configured." if not engine.brain.configured else "A model is configured.")
     try:

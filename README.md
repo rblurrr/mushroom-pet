@@ -51,8 +51,11 @@ From the repo:
 python -m sparky
 ```
 
-Then open http://127.0.0.1:8765 . One process serves the page and the API. It binds to
-`127.0.0.1` unless `SPARKY_HOST` is set. `SPARKY_PORT` changes the port (default `8765`).
+Then open the URL it prints. One process serves the page and the API. It binds to
+`127.0.0.1` unless `SPARKY_HOST` is set. The default port is `8765`. If that port
+already has a listener, Sparky takes the next free port and prints that address.
+`--port 8770` or `SPARKY_PORT` chooses a port. An explicit port that is already in
+use stops the process and names `SPARKY_PORT`, instead of sharing the port.
 
 No model key is required. With nothing configured he still walks, writes the Line Log,
 and refuses the things he is supposed to refuse. To let him phrase lines through an
