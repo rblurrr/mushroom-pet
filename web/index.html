@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sparky — Off-Peak</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <video id="cam" playsinline autoplay muted></video>
+  <canvas id="view"></canvas>
+  <div id="thought" hidden>
+    <span id="thought-icon"></span>
+    <span id="thought-text"></span>
+  </div>
+
+  <header id="mast">
+    <p class="kicker">Off-Peak · an imagined town</p>
+    <h1>Sparky</h1>
+    <p class="honest">Sparky is an AI character, drawn as a plug, who lives in Off-Peak, an imagined town. The Electrician is R.</p>
+  </header>
+
+  <section id="needs" aria-label="Needs"></section>
+
+  <footer id="status">
+    <span id="status-icon"></span>
+    <p><strong id="status-label">waking</strong> <span id="status-timer">0:00</span></p>
+    <p id="status-mood"></p>
+  </footer>
+
+  <div id="camera-bar">
+    <button id="cam-btn" type="button">Let Sparky see</button>
+    <button id="ar-btn" type="button" hidden>Step through</button>
+    <p id="cam-pill" data-on="0"><i></i><span>Camera off · not recording</span></p>
+  </div>
+
+  <button id="panel-toggle" type="button">Diary</button>
+  <aside id="panel">
+    <nav id="tabs"></nav>
+    <div id="sheet"></div>
+  </aside>
+
+  <dialog id="cam-ask">
+    <h2>Show Sparky your camera?</h2>
+    <p>Frames stay in this browser. He only receives a short line, such as “a person waved” or “a cup”. Nothing is recorded or uploaded.</p>
+    <label><input id="cam-remember" type="checkbox"> Remember a line in the diary if he notices something</label>
+    <div class="row">
+      <button id="cam-cancel" type="button">Not now</button>
+      <button id="cam-go" type="button">Connect camera</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
